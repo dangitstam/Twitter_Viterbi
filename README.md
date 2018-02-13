@@ -4,7 +4,7 @@ Part-of-Speech tagger for tweets using the Viterbi Algorithm.
 
 Includes a vector-optimized implementation that pre-computes all transition probabilities and iterates through a sequence, calculating the optimal path using NumPy matrix broadcasting in log space.
 
-Special thanks to Andrew Li (https://github.com/lia4) for explanations of vectorized Viterbi decoding. 
+Special thanks to Andrew Li (https://github.com/lia4) for help in vectorizing Viterbi decoding. 
 
 # Getting Started
 
@@ -35,13 +35,13 @@ To run the base implementation of the trigram Viterbi algorithm to label all sen
 
 ​	`python trigram_viterbi.py <path to twt.train.json> <path to twt.(dev|test).json>`
 
-**Note** that this version takes approximately 15-30 minutes to complete on the development set.
+**Note** that this version takes approximately 15-30 minutes to complete on a validation set of roughly 5000 examples.
 
 To run the optimized implementation of the trigram Viterbi algorithm, run
 
 ​	`python trigram_viterbi_vectorized.py <path to twt.train.json> <path to twt.(dev|test).json>`
 
-**This** version should take approximately 20 seconds to complete.
+**This** version should take approximately 20 seconds to complete for a comparable validation set!
 
 
-#### **All** versions of Viterbi above will print the time taken to complete as well as the per-word accuracy over the validation set given.
+All versions of Viterbi above will print the time taken to complete as well as the per-word accuracy over the validation set given.
