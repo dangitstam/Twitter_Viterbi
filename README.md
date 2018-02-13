@@ -1,6 +1,6 @@
 # Viterbi using Trigram Hidden Markov Models on Twitter Data
 
-Part-of-Speech tagger for tweets using the Viterbi Algorithm.
+Part-of-Speech tagger for tweets using the Viterbi Algorithm. Includes a vector-optimized implementation that pre-computes all transition probabilities and iterates through a sequence, calculating the optimal path using NumPy matrix broadcasting in log space.
 
 Special thanks to Andrew Li (https://github.com/lia4) for explanations of vectorized Viterbi decoding. 
 
