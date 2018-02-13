@@ -1,6 +1,8 @@
 # Viterbi using Trigram Hidden Markov Models on Twitter Data
 
-Part-of-Speech tagger for tweets using the Viterbi Algorithm. Includes a vector-optimized implementation that pre-computes all transition probabilities and iterates through a sequence, calculating the optimal path using NumPy matrix broadcasting in log space.
+Part-of-Speech tagger for tweets using the Viterbi Algorithm.
+
+Includes a vector-optimized implementation that pre-computes all transition probabilities and iterates through a sequence, calculating the optimal path using NumPy matrix broadcasting in log space.
 
 Special thanks to Andrew Li (https://github.com/lia4) for explanations of vectorized Viterbi decoding. 
 
@@ -11,8 +13,6 @@ Special thanks to Andrew Li (https://github.com/lia4) for explanations of vector
 * Python 3 (preferrably 3.6.3)
 * NumPy
 
-Please **do not alter the file structure**, the hidden markov models and Viterbi code rely on the symbols and utilities code to be in the same directory.
-
 ### Code Explained
 
 * symbols.py — Contains the defined UNKs as well as a function that UNKs a word given an effective vocabulary.  Note that only the trigram Viterbi utilized all UNKs; bigram Viterbi utilized only two. Reasons for this as well as other design choices can be found in the writeup.
@@ -22,7 +22,11 @@ Please **do not alter the file structure**, the hidden markov models and Viterbi
 * trigram_viterbi.py — Base implementation of Viterbi using trigram HMMs.
 * trigram_viterbi_vectorized.py — A vector-optimized version of trigram_viterbi.py using matrix operations instead of loops. Achieves the same accuracy as the base implementation.
 
+## Training
+Training examples should come from a json file where each line is of the form
 
+``[["word", "part-of-speech-tag"], ..., ["word", "part-of-speech-tag"]``
+This implementation is intended for part-of-speech tagged Twitter data available here: https://code.google.com/archive/p/ark-tweet-nlp/downloads
 
 ## Running the Trigram Viterbi Code
 
