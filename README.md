@@ -25,7 +25,7 @@ Special thanks to Andrew Li (https://github.com/lia4) for explanations of vector
 ## Training
 Training examples should come from a json file where each line is of the form
 
-``[["word", "part-of-speech-tag"], ..., ["word", "part-of-speech-tag"]``
+``[["word", "part-of-speech-tag"], ..., ["word", "part-of-speech-tag"]]``
 
 This implementation is intended for part-of-speech tagged Twitter data available here: https://code.google.com/archive/p/ark-tweet-nlp/downloads
 
