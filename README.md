@@ -1,13 +1,6 @@
-# Viterbi for Bigrams and Trigrams on Twitter Data
-
-Tam Dang
-CSE 447 - Hidden Markov Models
-2.4.2018
-
+# Viterbi using Trigram Hidden Markov Models on Twitter Data
 
 Part-of-Speech tagger for tweets using the Viterbi Algorithm.
-
-
 
 # Getting Started
 
@@ -24,24 +17,14 @@ Please **do not alter the file structure**, the hidden markov models and Viterbi
 * util.py — Contains a scoring function shared throughout the Viterbi code
 * HMM.py — A Bigram Hidden Markov Model smoothed with Linear Interpolation
 * TrigramHMM.py — A Trigram Hidden Markov Model smoothed with Linear Interpolation
-* bigram_viterbi.py — Implementation of Viterbi using bigram HMMs.
 * trigram_viterbi.py — Base implementation of Viterbi using trigram HMMs.
 * trigram_viterbi_vectorized.py — A vector-optimized version of trigram_viterbi.py using matrix operations instead of loops. Achieves the same accuracy as the base implementation.
 
 
 
-
-## Running the Bigram Viterbi Code
-
-To run the bigram Viterbi algorithm, run
-
-​	`python bigram_viterbi.py <path to twt.train.json> <path to twt.(dev|test).json>`
-
-For error analysis, the top 20 mislabled instances will be printed before overall accuracy is reported.
-
 ## Running the Trigram Viterbi Code
 
-To run the base implementation of the trigram Viterbi algorithm, run
+To run the base implementation of the trigram Viterbi algorithm to label all sentences in a corpus and calculate accuracy, run
 
 ​	`python trigram_viterbi.py <path to twt.train.json> <path to twt.(dev|test).json>`
 
@@ -52,11 +35,6 @@ To run the optimized implementation of the trigram Viterbi algorithm, run
 ​	`python trigram_viterbi_vectorized.py <path to twt.train.json> <path to twt.(dev|test).json>`
 
 **This** version should take approximately 20 seconds to complete.
-
-
-
-**Don't worry about the runtime warning about division by zero:** Python and NumPy will replace division by zero values with negative infinity (float('-inf')) appropriately.
-
 
 
 #### **All** versions of Viterbi above will print the time taken to complete as well as the per-word accuracy over the validation set given.
