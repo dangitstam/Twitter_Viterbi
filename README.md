@@ -2,7 +2,7 @@
 
 Part-of-Speech tagger for tweets using the Viterbi Algorithm.
 
-Special thanks to [https://github.com/lia4](Andrew Li) for explanations of vectorized Viterbi decoding. 
+Special thanks to (https://github.com/lia4 "Andrew Li") for explanations of vectorized Viterbi decoding. 
 
 # Getting Started
 
