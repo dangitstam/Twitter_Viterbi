@@ -78,6 +78,8 @@ class HiddenMarkovModel:
                 Q[W][U][V] = q(v | w, u)
             where q(v | w,  u) = c(w,  u, v) / c(w, u)
         """
-        all_observed_ngrams = set(self._label_ngram_model.get_ngram_frequencies().keys())
+        all_observed_ngrams = set(
+            self._label_ngram_model.get_ngram_frequencies().keys()
+        )
         for ngram in all_observed_ngrams:
             self.transition_matrix[ngram] = self._label_ngram_model.maximum_likelihood_estimate(ngram)

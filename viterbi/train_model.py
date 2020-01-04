@@ -47,18 +47,15 @@ def main():
     )
 
     first = next(instances)
-    first = next(instances)
+    input_tokens = first["token_ids"]
 
-    viterbi(
-        first,
-        vocab,
+    predictions = viterbi(
+        input_tokens,
         hmm.emission_matrix,
         hmm.transition_matrix,
-        token_namespace,
-        label_namespace,
-        3
+        vocab.get_token_index(start_token),
+        vocab.get_token_index(end_token)
     )
-
 
     import ipdb
 
