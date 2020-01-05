@@ -36,7 +36,6 @@ class HiddenMarkovModel:
         # Store the frequencies of seen labels here. Set the start and end token
         # frequencies artificially by 1 to avoid division by zero (they will
         # never be seen during training).
-        # TODO: Get rid of dead weight.
         self._label_count = np.zeros((label_namespace_size,), dtype=int)
         self._label_count[self.start_token_id] = 1
         self._label_count[self.end_token_id] = 1

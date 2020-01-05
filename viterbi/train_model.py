@@ -1,5 +1,9 @@
 """
-TODO: Export the vocab, transition matrix, and emissions matrix
+TODO: Arg parser, demo mode, accept input produce output as files, unit tests.
+
+To unit test viterbi
+* Expand ngram/hmm api to produce likelihoods of sequences
+* Assert the expected value is the highest in both sequence probability and emission before testing.
 """
 
 from viterbi.data.ark_tweet_nlp_conll_reader import read_ark_tweet_conll
