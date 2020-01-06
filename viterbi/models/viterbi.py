@@ -85,13 +85,13 @@ def trigram_viterbi(
     )
 
     for k, token in enumerate(input_tokens, start=1):
-        for u in range(transition_matrix.shape[0]):
-            for v in range(transition_matrix.shape[0]):
+        for u in range(label_namespace_size):
+            for v in range(label_namespace_size):
 
                 # For each ngram suffixed with u, v, find a prefixing w
                 # that maximizes
                 max_r, max_r_index = float("-inf"), -1
-                for w in range(transition_matrix.shape[0]):
+                for w in range(label_namespace_size):
                     r = (
                         paths[k - 1][w][u]
                         + transition_matrix[w][u][v]
@@ -110,8 +110,8 @@ def trigram_viterbi(
     # Explain this lol
     penultimate_token, final_token = None, None
     max_final = float("-inf")
-    for u in range(transition_matrix.shape[0]):
-        for v in range(transition_matrix.shape[0]):
+    for u in range(label_namespace_size):
+        for v in range(label_namespace_size):
             r_final = paths[-1][u][v] + transition_matrix[u][v][end_token_id]
             if r_final > max_final:
                 max_final = r_final
