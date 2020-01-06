@@ -13,6 +13,7 @@ class NGramModel:
     For order-1 ngram models, counts are stored as words
     themselves to their frequency instead of tuples.
     """
+
     def __init__(self, order):
         self.order = order
 

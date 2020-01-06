@@ -10,7 +10,7 @@ from viterbi.data.ark_tweet_nlp_conll_reader import read_ark_tweet_conll
 from viterbi.data.dataset_reader import DatasetReader
 from viterbi.data.util import construct_vocab_from_dataset
 from viterbi.models.hidden_markov_model import HiddenMarkovModel
-from viterbi.models.viterbi import viterbi
+from viterbi.models.viterbi import viterbi, trigram_viterbi
 
 
 def main():
@@ -53,13 +53,20 @@ def main():
     first = next(instances)
     input_tokens = first["token_ids"]
 
-    predictions = viterbi(
+    output = viterbi(
         input_tokens,
         hmm.emission_matrix,
         hmm.transition_matrix,
         vocab.get_token_index(start_token),
-        vocab.get_token_index(end_token)
+        vocab.get_token_index(end_token),
     )
+
+    prediction_labels = list(map(
+        lambda x: vocab.get_token_from_index(x, label_namespace),
+        output["prediction_ids"]
+    ))
+
+    log_likelihood = hmm.log_likelihood(first["token_ids"], first["label_ids"])
 
     import ipdb
 
