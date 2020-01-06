@@ -51,6 +51,7 @@ def main():
     )
 
     first = next(instances)
+
     input_tokens = first["token_ids"]
 
     output = viterbi(
@@ -61,10 +62,12 @@ def main():
         vocab.get_token_index(end_token),
     )
 
-    prediction_labels = list(map(
-        lambda x: vocab.get_token_from_index(x, label_namespace),
-        output["prediction_ids"]
-    ))
+    prediction_labels = list(
+        map(
+            lambda x: vocab.get_token_from_index(x, label_namespace),
+            output["label_ids"],
+        )
+    )
 
     log_likelihood = hmm.log_likelihood(first["token_ids"], first["label_ids"])
 

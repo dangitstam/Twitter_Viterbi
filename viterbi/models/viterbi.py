@@ -48,16 +48,14 @@ def viterbi(
     # Backtrace
     output_indices = list(np.unravel_index(np.argmax(r_final), r_final.shape))
     for k in range(num_tokens - 2, 0, -1):
-        yk = backpointers[k + 2][output_indices[0]][output_indices[1]]
+        backpointer_index = [k + 2] + output_indices[: order - 1]
+        yk = backpointers[tuple(backpointer_index)]
         output_indices.insert(0, yk)
 
     # Collect the log likelihood of the path chosen by viterbi.
     log_likelihood = np.max(r_final)
 
-    return {
-        "log_likelihood": log_likelihood,
-        "label_ids": output_indices
-    }
+    return {"log_likelihood": log_likelihood, "label_ids": output_indices}
 
 
 def trigram_viterbi(
@@ -91,10 +89,14 @@ def trigram_viterbi(
             for v in range(transition_matrix.shape[0]):
 
                 # For each ngram suffixed with u, v, find a prefixing w
-                # that maximizes 
-                max_r, max_r_index = float('-inf'), -1
+                # that maximizes
+                max_r, max_r_index = float("-inf"), -1
                 for w in range(transition_matrix.shape[0]):
-                    r = paths[k - 1][w][u] + transition_matrix[w][u][v] + emission_matrix[token][v]
+                    r = (
+                        paths[k - 1][w][u]
+                        + transition_matrix[w][u][v]
+                        + emission_matrix[token][v]
+                    )
                     if r > max_r:
                         max_r = r
                         max_r_index = w
@@ -107,7 +109,7 @@ def trigram_viterbi(
 
     # Explain this lol
     penultimate_token, final_token = None, None
-    max_final = float('-inf')
+    max_final = float("-inf")
     for u in range(transition_matrix.shape[0]):
         for v in range(transition_matrix.shape[0]):
             r_final = paths[-1][u][v] + transition_matrix[u][v][end_token_id]
@@ -125,7 +127,4 @@ def trigram_viterbi(
     # Collect the log likelihood of the path chosen by viterbi.
     log_likelihood = max_final
 
-    return {
-        "log_likelihood": log_likelihood,
-        "label_ids": output_indices
-    }
+    return {"log_likelihood": log_likelihood, "label_ids": output_indices}

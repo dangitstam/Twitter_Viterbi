@@ -125,11 +125,7 @@ class HiddenMarkovModel:
         transition_log_likelihood = 0
 
         # Augment labels with start and end tokens.
-        labels = (
-            [self.start_token_id] * (self.order - 1)
-            + labels
-            + [self.end_token_id]
-        )
+        labels = [self.start_token_id] * (self.order - 1) + labels + [self.end_token_id]
 
         ngrams = list(zip(*[labels[i:] for i in range(self.order)]))
         for ngram in ngrams:
