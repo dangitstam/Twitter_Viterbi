@@ -21,11 +21,15 @@ def viterbi(
     # being an optimal path. Note: log(1) = 0.
     paths = np.zeros([num_tokens + 1] + [label_namespace_size] * (order - 1),)
     init_path_index = [0] + [start_token_id] * (order - 1)
+
+    # Only the start tokens begin with a non -inf value.
+    paths.fill(float("-inf"))
     paths[tuple(init_path_index)] = 0
 
     backpointers = np.zeros(
         [num_tokens + 1] + [label_namespace_size] * (order - 1), dtype=int
     )
+    backpointers.fill(-1)
 
     for k, token in enumerate(input_tokens, start=1):
         # Shape: (K ^ order).
@@ -55,6 +59,10 @@ def viterbi(
     # Collect the log likelihood of the path chosen by viterbi.
     log_likelihood = np.max(r_final)
 
+    import ipdb
+
+    ipdb.set_trace()
+
     return {"log_likelihood": log_likelihood, "label_ids": output_indices}
 
 
@@ -78,6 +86,9 @@ def trigram_viterbi(
     # being an optimal path. Note: log(1) = 0.
     paths = np.zeros([num_tokens + 1] + [label_namespace_size] * (order - 1),)
     init_path_index = [0] + [start_token_id] * (order - 1)
+
+    # Only the start tokens begin with a non -inf value.
+    paths.fill(float("-inf"))
     paths[tuple(init_path_index)] = 0
 
     backpointers = np.zeros(
@@ -87,25 +98,26 @@ def trigram_viterbi(
     for k, token in enumerate(input_tokens, start=1):
         for u in range(label_namespace_size):
             for v in range(label_namespace_size):
+                if v != start_token_id or v != end_token_id:
 
-                # For each ngram suffixed with u, v, find a prefixing w
-                # that maximizes
-                max_r, max_r_index = float("-inf"), -1
-                for w in range(label_namespace_size):
-                    r = (
-                        paths[k - 1][w][u]
-                        + transition_matrix[w][u][v]
-                        + emission_matrix[token][v]
-                    )
-                    if r > max_r:
-                        max_r = r
-                        max_r_index = w
+                    # For each ngram suffixed with u, v, find a prefixing w
+                    # that maximizes
+                    max_r, max_r_index = float("-inf"), -1
+                    for w in range(label_namespace_size):
+                        r = (
+                            paths[k - 1][w][u]
+                            + transition_matrix[w][u][v]
+                            + emission_matrix[token][v]
+                        )
+                        if r > max_r:
+                            max_r = r
+                            max_r_index = w
 
-                # Update backpointers.
-                backpointers[k][u][v] = max_r_index
+                    # Update backpointers.
+                    backpointers[k][u][v] = max_r_index
 
-                # Update paths.
-                paths[k][u][v] = max_r
+                    # Update paths.
+                    paths[k][u][v] = max_r
 
     # Explain this lol
     penultimate_token, final_token = None, None

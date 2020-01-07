@@ -104,6 +104,11 @@ class HiddenMarkovModel:
     def log_likelihood(self, input_tokens, labels):
         """
         """
+
+        # pylint: disable=assignment-from-no-return
+        emission_matrix = np.log2(self.emission_matrix)
+        transition_matrix = np.log2(self.transition_matrix)
+
         if not self._is_trained:
             raise Exception(
                 "Attempting to compute log likelihood with an untrained HMM."
@@ -117,18 +122,18 @@ class HiddenMarkovModel:
             )
 
         # Emission likelihood in log space.
-        emission_log_likelihood = 0
+        emission_log_likelihood = np.zeros((1,))
         for input_token, label in zip(input_tokens, labels):
-            emission_log_likelihood += np.log2(self.emission_matrix[input_token][label])
+            emission_log_likelihood += emission_matrix[input_token][label]
 
         # Transition likelihood in log space.
-        transition_log_likelihood = 0
+        transition_log_likelihood = np.zeros((1,))
 
         # Augment labels with start and end tokens.
         labels = [self.start_token_id] * (self.order - 1) + labels + [self.end_token_id]
 
         ngrams = list(zip(*[labels[i:] for i in range(self.order)]))
         for ngram in ngrams:
-            transition_log_likelihood += np.log2(self.transition_matrix[ngram])
+            transition_log_likelihood += transition_matrix[ngram]
 
         return transition_log_likelihood + emission_log_likelihood
