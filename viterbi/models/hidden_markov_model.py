@@ -16,7 +16,8 @@ class HiddenMarkovModel:
         self.order = order
         self.token_namespace = token_namespace
         self.label_namespace = label_namespace
-        self.start_token, self.end_token = start_token, end_token
+        self.start_token = start_token
+        self.end_token = end_token
 
         # Infer start and end token IDs.
         self.start_token_id = vocab.get_token_index(start_token, label_namespace)

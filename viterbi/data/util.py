@@ -4,6 +4,11 @@ from collections import Counter
 from allennlp.data.vocabulary import Vocabulary
 
 
+# Default namespaces for tokens and labels.
+DEFAULT_TOKEN_NAMESPACE = "tokens"
+DEFAULT_LABEL_NAMESPACE = "labels"
+
+
 def construct_vocab_from_dataset(
     train_file_path,
     labels_file_path,
