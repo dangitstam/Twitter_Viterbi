@@ -30,10 +30,8 @@ def viterbi(
     Returns
     -------
     A dictionary of the form
-    {
-        'log_likelihood' : The log-likelihood of the most likely sequence under the model.
-        'label_ids' : A list of ints containing the predictions for the hidden sequence.
-    }
+    { 'log_likelihood' : The log-likelihood of the most likely sequence under the model.
+       'label_ids' : A list of ints containing the predictions for the hidden sequence. }
     """
     order = len(transition_matrix.shape)
     label_namespace_size = transition_matrix.shape[0]
@@ -64,10 +62,9 @@ def viterbi(
     # suffixed with that(n - 1) gram.
     paths = np.zeros([num_tokens + 1] + [label_namespace_size] * (order - 1),)
 
-    # The initial path starting at position zero with only the start token begins
-    # with probability 1 to prevent any paths not prefixed with start tokens from
-    # being an optimal path. Note: log(1) = 0.
-    # Only the start tokens begin with a non -inf value.
+    # The initial path starting at position 0 in the input sequence should ensure that only ngrams
+    # prefixed with (n - 1) start tokens begin with probability 1 to prevent any paths not prefixed
+    # with start tokens from being an optimal path. Note: log(1) = 0.
     paths.fill(float("-inf"))
     init_path_index = [0] + [start_token_id] * (order - 1)
     paths[tuple(init_path_index)] = 0
@@ -105,7 +102,6 @@ def viterbi(
         # Update paths.
         paths[k] = np.amax(r, axis=0)
 
-
     # Final Transition
     # ----------------
     # `stop_transition` shape: label_namespace_size for (order - 1) dimensions.
@@ -124,6 +120,9 @@ def viterbi(
     stop_transition = (transition_matrix.T)[end_token_id].T
     r_final = paths[num_tokens] + stop_transition
 
+    # Collect the log likelihood of the path chosen by Viterbi.
+    log_likelihood = np.max(r_final)
+
     # Backtrace Algorithm
     # -------------------
     # To collect the final n - 1 labels in order to perform the backtrace,
@@ -137,13 +136,15 @@ def viterbi(
     # but only *after* flattening. np.unravel_index() takes this index along with
     # the shape of the array to properly return the list of indices we need.
     output_indices = list(np.unravel_index(np.argmax(r_final), r_final.shape))
-    for k in range(num_tokens - 2, 0, -1):
-        backpointer_index = [k + 2] + output_indices[: order - 1]
-        yk = backpointers[tuple(backpointer_index)]
-        output_indices.insert(0, yk)
 
-    # Collect the log likelihood of the path chosen by Viterbi.
-    log_likelihood = np.max(r_final)
+    if len(input_tokens) < (order - 1):
+        # Special case: for input sequences of length less than the order minus 1.
+        output_indices = output_indices[-len(input_tokens) :]
+    else:
+        for k in range(num_tokens - (order - 1), 0, -1):
+            backpointer_index = [k + (order - 1)] + output_indices[: order - 1]
+            yk = backpointers[tuple(backpointer_index)]
+            output_indices.insert(0, yk)
 
     return {"log_likelihood": log_likelihood, "label_ids": output_indices}
 

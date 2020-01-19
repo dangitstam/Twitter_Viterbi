@@ -7,6 +7,8 @@ from allennlp.data.vocabulary import Vocabulary
 # Default namespaces for tokens and labels.
 DEFAULT_TOKEN_NAMESPACE = "tokens"
 DEFAULT_LABEL_NAMESPACE = "labels"
+DEFAULT_START_TOKEN = "@@START@@"
+DEFAULT_END_TOKEN = "@@END@@"
 
 
 def construct_vocab_from_dataset(
@@ -17,6 +19,8 @@ def construct_vocab_from_dataset(
     max_vocab_size=None,
     token_namespace="tokens",
     label_namespace="labels",
+    start_token=None,
+    end_token=None,
 ):
     """
     Constructs an AllenNLP vocabulary from the given dataset with two separate
@@ -54,5 +58,11 @@ def construct_vocab_from_dataset(
 
     for label in labels:
         vocab.add_token_to_namespace(label, label_namespace)
+
+    if start_token:
+        vocab.add_token_to_namespace(start_token, label_namespace)
+
+    if end_token:
+        vocab.add_token_to_namespace(end_token, label_namespace)
 
     return vocab

@@ -8,95 +8,103 @@ To unit test viterbi
 
 import argparse
 
-from viterbi.data.ark_tweet_nlp_conll_reader import read_ark_tweet_conll
 from viterbi.data.dataset_reader import DatasetReader
-from viterbi.data.util import (
-    construct_vocab_from_dataset,
-    DEFAULT_TOKEN_NAMESPACE,
-    DEFAULT_LABEL_NAMESPACE,
-)
+from viterbi.data.util import construct_vocab_from_dataset
 from viterbi.models.hidden_markov_model import HiddenMarkovModel
-from viterbi.models.viterbi import trigram_viterbi, viterbi
 
-
-# TODO: Dict mapping readers to a name, put in data dir
-# e.g.
-dataset_parsers = {"ark-tweet-conll": read_ark_tweet_conll}
-
-# TODO: token and label namespaces, if not provided, should be constants somewhere else.
+from viterbi.environments import ENVIRONMENTS
 
 
 def main():
-    # parser = argparse.ArgumentParser(
-    #     formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    # )
-    # parser.add_argument(
-    #     "--train-path", type=str, required=True, help="Path to the training set."
-    # )
-    # parser.add_argument(
-    #     "--dev-path", type=str, required=True, help="Path to the dev set."
-    # )
-    # parser.add_argument(
-    #     "--order", type=int, default=3, help="The degree of n for the ngram model."
-    # )
-    # parser.add_argument(
-    #     "--serialization-dir",
-    #     "-s",
-    #     type=str,
-    #     required=True,
-    #     help="Path to store the preprocessed output.",
-    # )
-    # parser.add_argument(
-    #     "--vocab-size",
-    #     type=int,
-    #     required=False,
-    #     default=10000,
-    #     help="Path to store the preprocessed corpus vocabulary (output file name).",
-    # )
-    # args = parser.parse_args()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "--train-path", type=str, required=True, help="Path to the training set."
+    )
+    parser.add_argument(
+        "--dev-path", type=str, required=True, help="Path to the dev set."
+    )
+    parser.add_argument(
+        "--label-set-path",
+        type=str,
+        required=True,
+        help="Path to file containing the state space.",
+    )
+    parser.add_argument(
+        "--environment", type=str, required=True, help="The model configuration."
+    )
+    parser.add_argument(
+        "--serialization-dir", type=str, required=True, help="Path to store the output."
+    )
+    args = parser.parse_args()
+
+    train_path = args.train_path
+    dev_path = args.dev_path
+    label_set_path = args.label_set_path
+
+    if args.environment not in ENVIRONMENTS:
+        raise ValueError("Unsupported environment: {}".format(args.environment))
+
+    environment = ENVIRONMENTS[args.environment]
+
+    # Collect the dataset-specific parser. Behavior is undefined if this value is not specified
+    # correctly (i.e. if the parser is incompatible with `train_path`).
+    dataset_parser = environment["dataset_parser"]
+
+    # Collect vocab parameters.
+    token_namespace = environment["token_namespace"]
+    label_namespace = environment["label_namespace"]
+    start_token = environment["start_token"]
+    end_token = environment["end_token"]
+    max_vocab_size = environment["max_vocab_size"]
+    min_count = environment["min_count"]
+
+    # Collect HMM and Viterbi parameters.
+    order = environment["order"]
+    viterbi_decoder = environment["viterbi_decoder"]
 
     # Construct a vocabulary for both the tokens and label space from the dataset.
-    token_namespace = "tokens"
-    label_namespace = "labels"
     vocab = construct_vocab_from_dataset(
-        "/Users/dangitstam/Datasets/ark-tweet-nlp-0.3.2/data/twpos-data-v0.3/oct27.conll",
-        "/Users/dangitstam/Git/Twitter_Viterbi/label_space.txt",
-        read_ark_tweet_conll,
+        train_path,
+        label_set_path,
+        dataset_parser,
+        token_namespace=token_namespace,
+        label_namespace=label_namespace,
+        max_vocab_size=max_vocab_size,
+        min_count=min_count,
+        # The HMM prepends and appends start and end tokens before training. To do this, they first
+        # have be added to the vocabulary so that they can be included when training the HMM.
+        start_token=start_token,
+        end_token=end_token,
+    )
+
+    # Construct a dataset reader and collect training instances.
+    dataset_reader = DatasetReader(vocab, dataset_parser)
+    instances = dataset_reader.read(train_path)
+
+    # Train a hidden markov model to learn transition and emission probabilities.
+    hmm = HiddenMarkovModel(
+        vocab,
+        order=order,
         token_namespace=token_namespace,
         label_namespace=label_namespace,
     )
-
-    # TODO: Store these as constants.
-    # The HMM will prepends and appends start and end tokens. To do this, they
-    # first must be added to the vocabulary and then specified when building the HMM.
-    start_token = "@@START@@"
-    end_token = "@@END@@"
-    vocab.add_token_to_namespace(start_token, label_namespace)
-    vocab.add_token_to_namespace(end_token, label_namespace)
-
-    # Construct a dataset reader.
-    dataset_reader = DatasetReader(vocab, read_ark_tweet_conll)
-    instances = dataset_reader.read(
-        "/Users/dangitstam/Datasets/ark-tweet-nlp-0.3.2/data/twpos-data-v0.3/oct27.conll"
-    )
-
-    # Train a hidden markov model (learn transition and emission probabilities).
-    hmm = HiddenMarkovModel(
-        vocab, order=3, token_namespace=token_namespace, label_namespace=label_namespace
-    )
-
     hmm.train(instances)
 
-    instances = dataset_reader.read(
-        "/Users/dangitstam/Datasets/ark-tweet-nlp-0.3.2/data/twpos-data-v0.3/oct27.conll"
-    )
+    # TODO: In this script,
+    # TODO: Produce a dict containing a trained model and its vocab, and then output that dict as a tarball to the serialization dir.
+    # TODO: Does it make sense to make a "model" that takes an HMM, vocab, and viterbi decoder to define a clean forward function?
+    output = {"hmm": hmm, "viterbi_decoder": viterbi_decoder, "vocab": vocab}
 
-    for i in range(100):
-        first = next(instances)
+    # Evaluate model performance on the dev set.
+    dev_instances = dataset_reader.read(dev_path)
+    correctly_tagged_words = 0
+    total_words = 0
+    for i, instance in enumerate(dev_instances):
+        input_tokens = instance["token_ids"]
 
-        input_tokens = first["token_ids"]
-
-        output = viterbi(
+        output = viterbi_decoder(
             input_tokens,
             hmm.emission_matrix,
             hmm.transition_matrix,
@@ -111,9 +119,21 @@ def main():
             )
         )
 
-        log_likelihood = hmm.log_likelihood(first["token_ids"], output["label_ids"])
+        labels = instance["labels"]
 
-        print(log_likelihood - output["log_likelihood"])
+        if len(prediction_labels) != len(labels):
+            import ipdb
+
+            ipdb.set_trace()
+
+        correctly_labeled = [
+            int(prediction == label)
+            for prediction, label in zip(prediction_labels, labels)
+        ]
+        correctly_tagged_words += sum(correctly_labeled)
+        total_words += len(labels)
+
+    print(correctly_tagged_words / total_words)
 
 
 if __name__ == "__main__":

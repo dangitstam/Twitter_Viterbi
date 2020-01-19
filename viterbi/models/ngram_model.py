@@ -38,7 +38,7 @@ class NGramModel:
 
     def maximum_likelihood_estimate(self, input_tokens):
         """
-        Maximum Likelihood Estmate for ngrams.
+        Maximum Likelihood Estimate for ngrams.
         
         For a given ngram returns the count of the n-length sequence divided
         by the count of the (n - 1) length context. For order n = 1, context

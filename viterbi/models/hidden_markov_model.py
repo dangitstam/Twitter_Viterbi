@@ -33,6 +33,8 @@ class HiddenMarkovModel:
         token_namespace_size = self.vocab.get_vocab_size(self.token_namespace)
         label_namespace_size = self.vocab.get_vocab_size(self.label_namespace)
 
+        # TODO: Is a dynamically-updatable HMM desirable?
+
         # A token_namespace x label_namespace containing emission probabilities.
         self.emission_matrix = np.zeros((token_namespace_size, label_namespace_size))
 
