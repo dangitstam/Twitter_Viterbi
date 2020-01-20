@@ -102,11 +102,16 @@ class HiddenMarkovModel:
             self._label_ngram_model.get_ngram_frequencies().keys()
         )
         for ngram in all_observed_ngrams:
-            self.transition_matrix[ngram] = self._label_ngram_model.maximum_likelihood_estimate(ngram)
+            self.transition_matrix[
+                ngram
+            ] = self._label_ngram_model.maximum_likelihood_estimate(ngram)
 
     def log_likelihood(self, input_tokens, labels):
         """
         """
+
+        # Conversion to log-space will cause division by zero warnings.
+        np.seterr(divide="ignore")
 
         # pylint: disable=assignment-from-no-return
         emission_matrix = np.log2(self.emission_matrix)

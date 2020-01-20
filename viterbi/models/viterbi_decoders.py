@@ -40,7 +40,9 @@ def viterbi(
     # Computing in Log-space
     # ----------------------
     # Likelihoods will be computed through addition in log_2 space instead of multiplication to
-    # avoid underflow.
+    # avoid underflow. Also, conversion to log-space will cause division by zero warnings, so we
+    # suppress this explicitly.
+    np.seterr(divide="ignore")
     # pylint: disable=assignment-from-no-return
     emission_matrix = np.log2(emission_matrix)
     transition_matrix = np.log2(transition_matrix)
@@ -220,9 +222,13 @@ def trigram_viterbi(
                 final_token = v
 
     output_indices = [penultimate_token, final_token]
-    for k in range(num_tokens - 2, 0, -1):
-        yk = backpointers[k + 2][output_indices[0]][output_indices[1]]
-        output_indices.insert(0, yk)
+    if len(input_tokens) <= 2:
+        # Special case: for input sequences of length less than the order minus 1.
+        output_indices = output_indices[-len(input_tokens) :]
+    else:
+        for k in range(num_tokens - 2, 0, -1):
+            yk = backpointers[k + 2][output_indices[0]][output_indices[1]]
+            output_indices.insert(0, yk)
 
     # Collect the log likelihood of the path chosen by viterbi.
     log_likelihood = max_final

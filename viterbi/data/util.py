@@ -3,6 +3,8 @@ from collections import Counter
 
 from allennlp.data.vocabulary import Vocabulary
 
+from viterbi.data.dataset_reader import DatasetReader
+from viterbi.models.hidden_markov_model import HiddenMarkovModel
 
 # Default namespaces for tokens and labels.
 DEFAULT_TOKEN_NAMESPACE = "tokens"
@@ -49,6 +51,7 @@ def construct_vocab_from_dataset(
 
     counter = {token_namespace: token_counts}
 
+    # TODO: min_count should be a dictionary.
     vocab = Vocabulary(
         counter=counter,
         min_count=min_count,

@@ -101,7 +101,7 @@ def main():
     dev_instances = dataset_reader.read(dev_path)
     correctly_tagged_words = 0
     total_words = 0
-    for i, instance in enumerate(dev_instances):
+    for instance in dev_instances:
         input_tokens = instance["token_ids"]
 
         output = viterbi_decoder(
@@ -121,17 +121,17 @@ def main():
 
         labels = instance["labels"]
 
-        if len(prediction_labels) != len(labels):
-            import ipdb
-
-            ipdb.set_trace()
-
         correctly_labeled = [
             int(prediction == label)
             for prediction, label in zip(prediction_labels, labels)
         ]
         correctly_tagged_words += sum(correctly_labeled)
         total_words += len(labels)
+
+        log_likelihood = hmm.log_likelihood(instance["token_ids"], output["label_ids"])
+        import numpy as np
+
+        assert np.isclose(log_likelihood, output["log_likelihood"])
 
     print(correctly_tagged_words / total_words)
 
