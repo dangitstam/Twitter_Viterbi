@@ -33,13 +33,11 @@ class HiddenMarkovModel:
         token_namespace_size = self.vocab.get_vocab_size(self.token_namespace)
         label_namespace_size = self.vocab.get_vocab_size(self.label_namespace)
 
-        # TODO: Is a dynamically-updatable HMM desirable?
-
         # A token_namespace x label_namespace containing emission probabilities.
         self.emission_matrix = np.zeros((token_namespace_size, label_namespace_size))
 
         # A label_namespace ^ order sized matrix containing transition probabilities.
-        # For a trigram HMM, transition_matrix[w][u][v] = P(V | w, u).
+        # For a trigram HMM, transition_matrix[w][u][v] = P(v | w, u).
         self.transition_matrix = np.zeros((label_namespace_size,) * self.order)
 
         # An ngram model to help construct the transition matrix over labels.
@@ -57,7 +55,16 @@ class HiddenMarkovModel:
 
     def train(self, dataset):
         """
-        TODO: dataset should be an iterator over the corpus
+        Initializes and trains HMM parameters.
+
+        For HMMs that are already trained, re-training on the given dataset will destroy and
+        re-initialize, and re-learn the HMM's parameters.  
+
+        Parameters
+        ----------
+        dataset :
+            An iterator over the dataset. Assumes each example has a "token_ids" mapped to a
+            List[int] of input tokens, and a "label_ids" mapped to a List[int] of labels.
         """
 
         if self._is_trained:
@@ -108,6 +115,17 @@ class HiddenMarkovModel:
 
     def log_likelihood(self, input_tokens, labels):
         """
+        Computes the log-likelihood of an input sequence and labels under this HMM.
+
+        Assumes input tokens and labels are given as ids, and that there is 1:1 correspondence
+        between given input tokens and labels.
+
+        Parameters
+        ----------
+        input_tokens : List[int]
+            The list of input tokens.
+        labels : List[int]
+            The list of labels..
         """
 
         # Conversion to log-space will cause division by zero warnings.
