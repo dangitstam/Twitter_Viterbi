@@ -23,7 +23,7 @@ pip install -r requirements.txt
 
 Test your installation with the unit tests:
 ```
-pytest -v
+pytest -v -W ignore
 ```
 
 # Acknowledgements
