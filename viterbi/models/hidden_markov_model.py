@@ -75,7 +75,7 @@ class HiddenMarkovModel:
 
             # Update the ngram model. Each series of labels is prepended with
             # (order - 1) start tokens and appeneded with one end token.
-            labels = (
+            labels = tuple(
                 [self.start_token_id] * (self.order - 1) + labels + [self.end_token_id]
             )
             self._label_ngram_model.update(labels)

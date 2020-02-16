@@ -36,6 +36,10 @@ class NGramModel:
         self._ngram_frequencies.update(ngrams)
         self._context_frequencies.update(contexts)
 
+        # For unigram models, context dict will be empty and the MLE becomes
+        # the frequency of the token in the corpus.
+        self._total_token_count += len(input_tokens)
+
     def maximum_likelihood_estimate(self, input_tokens):
         """
         Maximum Likelihood Estimate for ngrams.

@@ -98,7 +98,6 @@ def test_viterbi_log_likelihood_equals_hmm_log_likelihood_trigram():
     vocab = model["vocab"]
     hmm = model["hmm"]
 
-
     dataset_reader = DatasetReader(model["vocab"], dataset_parser)
 
     all_instances = dataset_reader.read(train_path)
@@ -115,9 +114,8 @@ def test_viterbi_log_likelihood_equals_hmm_log_likelihood_trigram():
             vocab.get_token_index(end_token, label_namespace),
         )
         log_likelihood = hmm.log_likelihood(input_tokens, trigram_output["label_ids"])
-        assert np.isclose(
-            log_likelihood, trigram_output["log_likelihood"]
-        )
+        assert np.isclose(log_likelihood, trigram_output["log_likelihood"])
+
 
 def test_viterbi_log_likelihood_equals_hmm_log_likelihood_trigram_optimized():
     label_set_path = FIXTURES_ROOT / "label_space.txt"
