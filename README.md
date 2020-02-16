@@ -6,12 +6,12 @@ Includes a vector-optimized implementation that pre-computes all transition prob
 
 ## Getting Started
 
-Create a new environment for the project and activate it:
+Create a new environment for the project
 ```
 conda create --name twitter-viterbi python=3.7
 ```
 
-and activate it:
+and activate it
 ```
 conda activate twitter-viterbi
 ```
@@ -21,7 +21,7 @@ Install AllenNLP and NumPy
 pip install -r requirements.txt
 ```
 
-Test your installation with the unit tests:
+Test your installation by running the unit tests:
 ```
 pytest -v -W ignore
 ```
