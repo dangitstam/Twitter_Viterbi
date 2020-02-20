@@ -1,26 +1,15 @@
-import argparse
 import pathlib
 from itertools import chain
 
 import numpy as np
 from tqdm import tqdm
 
-from viterbi.data.ark_tweet_nlp_conll_reader import read_ark_tweet_conll
 from viterbi.data.dataset_reader import DatasetReader
-from viterbi.data.util import (
-    DEFAULT_END_TOKEN,
-    DEFAULT_LABEL_NAMESPACE,
-    DEFAULT_START_TOKEN,
-    DEFAULT_TOKEN_NAMESPACE,
-    construct_vocab_from_dataset,
-)
 from viterbi.environments import (
-    ENVIRONMENTS,
     ark_tweet_conll_bigram_optimized,
     ark_tweet_conll_trigram,
     ark_tweet_conll_trigram_optimized,
 )
-from viterbi.models.hidden_markov_model import HiddenMarkovModel
 from viterbi.models.viterbi_decoders import trigram_viterbi, viterbi
 from viterbi.util import construct_model_from_environment
 
@@ -156,9 +145,10 @@ def test_optimized_trigram_equals_trigram():
     if dev_path:
         all_instances = chain(all_instances, dataset_reader.read(dev_path))
 
-    for instance in all_instances:
+    # Too verbose to check all instances, 100 should be plenty.
+    for i, instance in enumerate(all_instances):
         input_tokens = instance["token_ids"]
-        trigram_output = viterbi(
+        trigram_output = trigram_viterbi(
             input_tokens,
             hmm.emission_matrix,
             hmm.transition_matrix,
@@ -178,3 +168,6 @@ def test_optimized_trigram_equals_trigram():
             trigram_output["log_likelihood"], optimized_trigram_output["log_likelihood"]
         )
         assert trigram_output["label_ids"] == optimized_trigram_output["label_ids"]
+
+        if i > 100:
+            break
