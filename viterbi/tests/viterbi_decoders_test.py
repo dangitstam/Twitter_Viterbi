@@ -2,7 +2,6 @@ import pathlib
 from itertools import chain
 
 import numpy as np
-from tqdm import tqdm
 
 from viterbi.data.dataset_reader import DatasetReader
 from viterbi.environments import (
@@ -145,7 +144,7 @@ def test_optimized_trigram_equals_trigram():
     if dev_path:
         all_instances = chain(all_instances, dataset_reader.read(dev_path))
 
-    # Too verbose to check all instances, 100 should be plenty.
+    # Too verbose to check all instances, 50 should be plenty.
     for i, instance in enumerate(all_instances):
         input_tokens = instance["token_ids"]
         trigram_output = trigram_viterbi(
@@ -169,5 +168,5 @@ def test_optimized_trigram_equals_trigram():
         )
         assert trigram_output["label_ids"] == optimized_trigram_output["label_ids"]
 
-        if i > 100:
+        if i > 50:
             break

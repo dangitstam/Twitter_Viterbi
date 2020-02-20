@@ -1,8 +1,6 @@
 import os
 import pathlib
 
-import numpy as np
-
 from viterbi.data.ark_tweet_nlp_conll_reader import read_ark_tweet_conll
 from viterbi.data.dataset_reader import DatasetReader
 from viterbi.data.util import (

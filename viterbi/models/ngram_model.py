@@ -1,6 +1,4 @@
 from collections import Counter
-from math import log
-import numpy as np
 
 
 class NGramModel:

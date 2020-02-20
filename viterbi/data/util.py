@@ -3,9 +3,6 @@ from collections import Counter
 
 from allennlp.data.vocabulary import Vocabulary
 
-from viterbi.data.dataset_reader import DatasetReader
-from viterbi.models.hidden_markov_model import HiddenMarkovModel
-
 # Default namespaces for tokens and labels.
 DEFAULT_TOKEN_NAMESPACE = "tokens"
 DEFAULT_LABEL_NAMESPACE = "labels"
