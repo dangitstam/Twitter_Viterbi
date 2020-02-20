@@ -49,6 +49,7 @@ def construct_test_vocab_and_dataset():
 
     return vocab, instances
 
+
 def verify_emission_matrix(vocab, instances, hmm):
     # All emission probabilities for token, label pairs in the dataset should be 1
     # except for token1 and token2 which were intentially swapped.
@@ -98,32 +99,35 @@ def test_bigram_hidden_markov_model():
     verify_emission_matrix(vocab, instances, hmm)
 
     # Verify bigram transition matrix construction.
-    expected_bigrams =  [
+    expected_bigrams = [
         ("label1", "label2"),
         ("label2", "label3"),
         ("label3", "label4"),
         ("label4", "label5"),
-
         # Results from the contrived case.
-        ("label4", "label6")
+        ("label4", "label6"),
     ]
 
     expected_probability_one_bigrams = [
         ("label1", "label2"),
         ("label2", "label3"),
-        ("label3", "label4")
+        ("label3", "label4"),
     ]
 
     for label_i in LABELS:
         label_i_id = vocab.get_token_index(label_i, namespace=DEFAULT_LABEL_NAMESPACE)
         for label_j in LABELS:
-            label_j_id = vocab.get_token_index(label_j, namespace=DEFAULT_LABEL_NAMESPACE)
+            label_j_id = vocab.get_token_index(
+                label_j, namespace=DEFAULT_LABEL_NAMESPACE
+            )
             if (label_i, label_j) not in expected_bigrams:
                 assert hmm.transition_matrix[label_i_id][label_j_id] == 0
             elif (label_i, label_j) in expected_probability_one_bigrams:
                 assert hmm.transition_matrix[label_i_id][label_j_id] == 1
             else:
+                # Catches (label4, label5) and (label4, label6).
                 assert hmm.transition_matrix[label_i_id][label_j_id] == 1 / 2
+
 
 def test_trigram_hidden_markov_model():
     """
@@ -143,30 +147,40 @@ def test_trigram_hidden_markov_model():
     verify_emission_matrix(vocab, instances, hmm)
 
     # Verify bigram transition matrix construction.
-    expected_bigrams =  [
+    expected_bigrams = [
         ("label1", "label2", "label3"),
         ("label2", "label3", "label4"),
         ("label3", "label4", "label5"),
-
         # Results from the contrived case.
         ("label3", "label4", "label6"),
     ]
 
     expected_probability_one_bigrams = [
         ("label1", "label2", "label3"),
-        ("label2", "label3", "label4")
+        ("label2", "label3", "label4"),
     ]
 
     for label_i in LABELS:
         label_i_id = vocab.get_token_index(label_i, namespace=DEFAULT_LABEL_NAMESPACE)
         for label_j in LABELS:
-            label_j_id = vocab.get_token_index(label_j, namespace=DEFAULT_LABEL_NAMESPACE)
+            label_j_id = vocab.get_token_index(
+                label_j, namespace=DEFAULT_LABEL_NAMESPACE
+            )
             for label_k in LABELS:
-                label_k_id = vocab.get_token_index(label_k, namespace=DEFAULT_LABEL_NAMESPACE)
+                label_k_id = vocab.get_token_index(
+                    label_k, namespace=DEFAULT_LABEL_NAMESPACE
+                )
                 if (label_i, label_j, label_k) not in expected_bigrams:
-                    assert hmm.transition_matrix[label_i_id][label_j_id][label_k_id] == 0
+                    assert (
+                        hmm.transition_matrix[label_i_id][label_j_id][label_k_id] == 0
+                    )
                 elif (label_i, label_j, label_k) in expected_probability_one_bigrams:
-                    assert hmm.transition_matrix[label_i_id][label_j_id][label_k_id] == 1
+                    assert (
+                        hmm.transition_matrix[label_i_id][label_j_id][label_k_id] == 1
+                    )
                 else:
-                    # Catches (label3, label4, label5) and label3, label4, label6).
-                    assert hmm.transition_matrix[label_i_id][label_j_id][label_k_id] == 1 / 2
+                    # Catches (label3, label4, label5) and (label3, label4, label6).
+                    assert (
+                        hmm.transition_matrix[label_i_id][label_j_id][label_k_id]
+                        == 1 / 2
+                    )
