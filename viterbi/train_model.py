@@ -25,6 +25,9 @@ def main():
     parser.add_argument(
         "--dev-path", type=str, required=True, help="Path to the dev set."
     )
+
+    # TODO: Make this optional, infer the state-space from the training data.
+    # When a new label is seen during training, throw an exception (this should be true already anyway).
     parser.add_argument(
         "--label-set-path",
         type=str,

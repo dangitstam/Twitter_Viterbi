@@ -46,9 +46,7 @@ class HiddenMarkovModel:
         # Store the frequencies of seen labels here. Set the start and end token
         # frequencies artificially by 1 to avoid division by zero (they will
         # never be seen during training).
-        self._label_count = np.zeros((label_namespace_size,), dtype=int)
-        self._label_count[self.start_token_id] = 1
-        self._label_count[self.end_token_id] = 1
+        self._token_count = np.zeros((token_namespace_size,), dtype=int)
 
         # A flag to check if the model has been trained.
         self._is_trained = False
@@ -78,7 +76,7 @@ class HiddenMarkovModel:
             # token-label and labeloccurrence. Later, each value is divided by the label occurrence.
             for token, label in zip(tokens, labels):
                 self.emission_matrix[token][label] += 1
-                self._label_count[label] += 1
+                self._token_count[token] += 1
 
             # Update the ngram model. Each series of labels is prepended with
             # (order - 1) start tokens and appeneded with one end token.
@@ -93,7 +91,11 @@ class HiddenMarkovModel:
         self._is_trained = True
 
     def _construct_emission_matrix(self):
-        self.emission_matrix /= self._label_count
+
+        # For each token, label pair, divide the label's frequency by
+        # the frequency of the token to normalize.
+        for i in range(self.emission_matrix.shape[0]):
+            self.emission_matrix[i] /= self._token_count[i]
 
     def _construct_transition_matrix(self):
         """
@@ -125,7 +127,7 @@ class HiddenMarkovModel:
         input_tokens : List[int]
             The list of input tokens.
         labels : List[int]
-            The list of labels..
+            The list of labels.
         """
 
         # Conversion to log-space will cause division by zero warnings.
