@@ -1,0 +1,4 @@
+allennlp
+black
+flake8
+numpy
