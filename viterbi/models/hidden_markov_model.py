@@ -2,11 +2,10 @@ import itertools
 
 import numpy as np
 from nltk.lm import MLE
-from nltk.lm.preprocessing import padded_everygram_pipeline
+from nltk.util import everygrams
 from tqdm import tqdm
 
 from viterbi.data.util import DEFAULT_START_TOKEN, DEFAULT_END_TOKEN
-from viterbi.models.ngram_model import NGramModel
 
 
 class HiddenMarkovModel:
@@ -49,10 +48,6 @@ class HiddenMarkovModel:
         # For a trigram HMM, transition_matrix[w][u][v] = P(v | w, u).
         self.transition_matrix = np.zeros((label_namespace_size,) * self.order)
 
-        # An ngram model to help construct the transition matrix over labels.
-        self._label_ngram_model = NGramModel(self.order)
-
-        # TODO: This will eventually replace the current ngram model.
         # TODO: Unit tests pass! Make this toggleable!
         self._lm_ngram_model = self.language_model(self.order)
 
@@ -76,7 +71,7 @@ class HiddenMarkovModel:
         if self._is_trained:
             self._init_parameters()
 
-        train_text = []
+        ngram_training_text = []
         for instance in dataset:
             token_ids = instance["token_ids"]
             label_ids = instance["label_ids"]
@@ -85,29 +80,15 @@ class HiddenMarkovModel:
             # token-label and label occurrence. Later, each value is divided by the label occurrence.
             for token, label in zip(token_ids, label_ids):
 
-                # TODO: Smoothing needs to exist here.
-                # E.g. ensure that the vocab has a fixed size so that
-                # self.emission_matrix["@@UNKNOWN@@"][label] is non-zero.
-
-                # Also need a function that does the UNK'ing stuff...
+                # TODO: Also need a function that does the UNK'ing stuff...
                 self.emission_matrix[token][label] += 1
 
-            # Update the ngram model. Each series of labels is prepended with
-            # (order - 1) start tokens and appended with one end token.
-            labels_ids_with_start_end = tuple(
-                [self.start_token_id] * (self.order - 1) + label_ids + [self.end_token_id]
-            )
-            self._label_ngram_model.update(labels_ids_with_start_end)
+            ngram_training_text.append(instance["labels"])
 
-            labels_with_start_end = [self.vocab.get_token_from_index(label, namespace=self.label_namespace)
-                                     for label in labels_ids_with_start_end]
-
-            train_text.append(labels_with_start_end)
-
-        # TODO: `padded_everygram_pipeline` uses its own start and end tokens, figure out what to do about it
-        train, nltk_vocab = padded_everygram_pipeline(self.order, train_text)
-
-        self._lm_ngram_model.fit(train, nltk_vocab)
+        # Train the ngram model with padded label sequences from the training instances.
+        self._lm_ngram_model.fit(
+            self._padded_everygram_pipeline_viterbi(ngram_training_text),
+            self.get_label_set())
 
         self._construct_emission_matrix()
         self._construct_transition_matrix()
@@ -189,3 +170,29 @@ class HiddenMarkovModel:
             transition_log_likelihood += transition_matrix[ngram]
 
         return transition_log_likelihood + emission_log_likelihood
+
+    def get_label_set(self):
+        return set(self.vocab.get_token_to_index_vocabulary(self.label_namespace).keys())
+
+    def _pad_label_sequence(self, labels: list):
+        return [self.start_token] * (self.order - 1) + labels + [self.end_token]
+
+    def _padded_everygram_pipeline_viterbi(self, text: list):
+        """
+        Adapted from NLTK's nltk.lm.preprocessing.padded_everygram_pipeline to better suit
+        the viterbi algorithm.
+
+        Instead of padding both ends by (n - 1) padding tokens, pads the beginning with (n - 1)
+        start tokens and the end with a single stop token.
+
+        Adapting the implementation also allows flexibility in what the start and end tokens are.
+        They are hardcoded to be <s> and </s> in nltk.lm.preprocessing.padded_everygram_pipeline.
+
+        Creates an iterator of sentences padded and turned into sequences of `nltk.util.everygrams`
+
+        :param order: Largest ngram length produced by `everygrams`.
+        :param text: Text to iterate over. Expected to be an iterable of sentences:
+        Iterable[Iterable[str]]
+        :return: iterator over text as ngrams, iterator over text as vocabulary data
+        """
+        return (everygrams(self._pad_label_sequence(sent), max_len=self.order) for sent in text)
