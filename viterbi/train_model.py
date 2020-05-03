@@ -16,6 +16,7 @@ from viterbi.environments import ENVIRONMENTS
 from viterbi.models.hidden_markov_model import HiddenMarkovModel
 from viterbi.data.util import twitter_unk
 
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -50,24 +51,25 @@ def main():
     if args.environment not in ENVIRONMENTS:
         raise ValueError("Unsupported environment: {}".format(args.environment))
 
-    environment = ENVIRONMENTS[args.environment]
+    environment = ENVIRONMENTS.get(args.environment)
 
     # Collect the dataset-specific parser. Behavior is undefined if this value is not specified
     # correctly (i.e. if the parser is incompatible with `train_path`).
-    dataset_parser = environment["dataset_parser"]
+    dataset_parser = environment.get("dataset_parser")
 
     # Collect vocab parameters.
-    token_namespace = environment["token_namespace"]
-    label_namespace = environment["label_namespace"]
-    start_token = environment["start_token"]
-    end_token = environment["end_token"]
-    max_vocab_size = environment["max_vocab_size"]
-    min_count = environment["min_count"]
-    lowercase_tokens = environment["lowercase_tokens"]
+    token_namespace = environment.get("token_namespace")
+    label_namespace = environment.get("label_namespace")
+    start_token = environment.get("start_token")
+    end_token = environment.get("end_token")
+    max_vocab_size = environment.get("max_vocab_size")
+    min_count = environment.get("min_count")
+    lowercase_tokens = environment.get("lowercase_tokens")
+    special_unknown_token_fn = environment.get("special_unknown_token_fn")
 
     # Collect HMM and Viterbi parameters.
-    order = environment["order"]
-    viterbi_decoder = environment["viterbi_decoder"]
+    order = environment.get("order")
+    viterbi_decoder = environment.get("viterbi_decoder")
 
     # Construct a vocabulary for both the tokens and label space from the dataset.
     vocab = construct_vocab_from_dataset(
@@ -87,9 +89,15 @@ def main():
 
     # Construct a dataset reader and collect training instances.
     def token_preprocessing_fn(tokens):
-        return [twitter_unk(token.lower() if lowercase_tokens else token, vocab, token_namespace)
-                for token in tokens]
-    dataset_reader = DatasetReader(vocab, dataset_parser, token_preprocessing_fn=token_preprocessing_fn)
+        if lowercase_tokens:
+            tokens = map(tokens.lower(), tokens)
+        if special_unknown_token_fn:
+            tokens = map(twitter_unk, tokens)
+        return tokens
+
+    dataset_reader = DatasetReader(
+        vocab, dataset_parser, token_preprocessing_fn=token_preprocessing_fn
+    )
     instances = dataset_reader.read(train_path)
 
     # Train a hidden markov model to learn transition and emission probabilities.
@@ -158,8 +166,9 @@ def main():
             max_acc = acc
             max_acc_example = (labels, prediction_labels)
 
-        print("EXPECTED: {} \nACTUAL:   {}".format(instance['labels'], prediction_labels))
-
+        print(
+            "EXPECTED: {} \nACTUAL:   {}".format(instance["labels"], prediction_labels)
+        )
 
     # TODO: Proper UNK'ing for Twitter.
     print(max_acc, max_acc_example)
