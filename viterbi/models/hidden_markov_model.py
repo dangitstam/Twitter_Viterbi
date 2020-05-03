@@ -1,11 +1,18 @@
 import itertools
 
 import numpy as np
-from nltk.lm import MLE
+from nltk.lm import MLE, Laplace, KneserNeyInterpolated, WittenBellInterpolated
 from nltk.util import everygrams
 from tqdm import tqdm
 
 from viterbi.data.util import DEFAULT_START_TOKEN, DEFAULT_END_TOKEN
+
+NGRAM_MODEL_TYPES = {
+    "MLE": MLE,
+    "Laplace": Laplace,
+    "KneserNeyInterpolated": KneserNeyInterpolated,
+    "WittenBellInterpolated": WittenBellInterpolated
+}
 
 
 class HiddenMarkovModel:
@@ -17,41 +24,42 @@ class HiddenMarkovModel:
         label_namespace="labels",
         start_token=DEFAULT_START_TOKEN,
         end_token=DEFAULT_END_TOKEN,
-        language_model=MLE
+        language_model="MLE"
     ):
         self.vocab = vocab
         self.order = order
         self.token_namespace = token_namespace
         self.label_namespace = label_namespace
+        self.token_namespace_size = self.vocab.get_vocab_size(self.token_namespace)
+        self.label_namespace_size = self.vocab.get_vocab_size(self.label_namespace)
         self.start_token = start_token
         self.end_token = end_token
-        self.language_model = language_model
+
+        if language_model not in NGRAM_MODEL_TYPES:
+            raise ValueError("language model '{}' not supported.".format(language_model))
+
+        self.language_model = NGRAM_MODEL_TYPES[language_model]
 
         # Infer start and end token IDs.
         self.start_token_id = vocab.get_token_index(start_token, label_namespace)
         self.end_token_id = vocab.get_token_index(end_token, label_namespace)
 
-        # Init. transition and emission matrices.
-        self._init_parameters()
+        # A token_namespace x label_namespace containing emission probabilities.
+        self.emission_matrix = np.zeros((self.token_namespace_size, self.label_namespace_size))
+
+        # A label_namespace ^ order sized matrix containing transition probabilities.
+        # For a trigram HMM, transition_matrix[w][u][v] = P(v | w, u).
+        self.transition_matrix = np.zeros((self.label_namespace_size,) * self.order)
+
+        self._lm_ngram_model = self.language_model(self.order)
 
         # A flag to check if the model has been trained.
         self._is_trained = False
 
     def _init_parameters(self):
-        token_namespace_size = self.vocab.get_vocab_size(self.token_namespace)
-        label_namespace_size = self.vocab.get_vocab_size(self.label_namespace)
-
-        # A token_namespace x label_namespace containing emission probabilities.
-        self.emission_matrix = np.zeros((token_namespace_size, label_namespace_size))
-
-        # A label_namespace ^ order sized matrix containing transition probabilities.
-        # For a trigram HMM, transition_matrix[w][u][v] = P(v | w, u).
-        self.transition_matrix = np.zeros((label_namespace_size,) * self.order)
-
-        # TODO: Unit tests pass! Make this toggleable!
+        self.emission_matrix = np.zeros((self._token_namespace_size, self._label_namespace_size))
+        self.transition_matrix = np.zeros((self._label_namespace_size,) * self.order)
         self._lm_ngram_model = self.language_model(self.order)
-
-        # A flag to check if the model has been trained.
         self._is_trained = False
 
     def train(self, dataset):
