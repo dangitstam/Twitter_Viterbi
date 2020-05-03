@@ -1,7 +1,5 @@
 from allennlp.data.vocabulary import Vocabulary
 
-from viterbi.data.util import twitter_unk
-
 
 class DatasetReader:
     """
