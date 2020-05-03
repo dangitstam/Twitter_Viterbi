@@ -14,7 +14,7 @@ from viterbi.data.dataset_reader import DatasetReader
 from viterbi.data.util import construct_vocab_from_dataset
 from viterbi.environments import ENVIRONMENTS
 from viterbi.models.hidden_markov_model import HiddenMarkovModel
-
+from viterbi.data.util import twitter_unk
 
 def main():
     parser = argparse.ArgumentParser(
@@ -63,6 +63,7 @@ def main():
     end_token = environment["end_token"]
     max_vocab_size = environment["max_vocab_size"]
     min_count = environment["min_count"]
+    lowercase_tokens = environment["lowercase_tokens"]
 
     # Collect HMM and Viterbi parameters.
     order = environment["order"]
@@ -81,10 +82,14 @@ def main():
         # have be added to the vocabulary so that they can be included when training the HMM.
         start_token=start_token,
         end_token=end_token,
+        lowercase_tokens=lowercase_tokens,
     )
 
     # Construct a dataset reader and collect training instances.
-    dataset_reader = DatasetReader(vocab, dataset_parser)
+    def token_preprocessing_fn(tokens):
+        return [twitter_unk(token.lower() if lowercase_tokens else token, vocab, token_namespace)
+                for token in tokens]
+    dataset_reader = DatasetReader(vocab, dataset_parser, token_preprocessing_fn=token_preprocessing_fn)
     instances = dataset_reader.read(train_path)
 
     # Train a hidden markov model to learn transition and emission probabilities.
@@ -152,6 +157,9 @@ def main():
         elif max_acc is None or acc > max_acc:
             max_acc = acc
             max_acc_example = (labels, prediction_labels)
+
+        print("EXPECTED: {} \nACTUAL:   {}".format(instance['labels'], prediction_labels))
+
 
     # TODO: Proper UNK'ing for Twitter.
     print(max_acc, max_acc_example)

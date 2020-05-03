@@ -7,9 +7,51 @@ from allennlp.data.vocabulary import Vocabulary
 DEFAULT_TOKEN_NAMESPACE = "tokens"
 DEFAULT_LABEL_NAMESPACE = "labels"
 
-# TODO: These and env-defined defaults are not aligned.
-DEFAULT_START_TOKEN = "<s>"
-DEFAULT_END_TOKEN = "</s>"
+DEFAULT_START_TOKEN = "@@START@@"
+DEFAULT_END_TOKEN = "@@END@@"
+
+
+# Unknown symbols and UNK'ing specifically made for Twitter data.
+HASHTAG = "@@HASHTAG@@"
+MENTION = "@@MENTION@@"
+NUMERIC = "@@NUMERIC@@"
+URL = "@@URL@@"
+PUNCT = "@@PUNCT@@"
+SPECIALIZED_UNKNOWNS = {HASHTAG, MENTION, NUMERIC, URL, PUNCT}
+
+
+def twitter_unk(xi, vocab: Vocabulary, token_namespace):
+    """
+    Uses regular expressions to look for tell-tale signs
+    that prove beyond doubt that a word takes a particular
+    form.
+
+    If the word does not match a heuristic, defaults
+    to <UNK> if it is an unknown word.
+    """
+
+    if re.match(r"^@.*", xi):
+        # Twitter handles are restricted to alphanumerics
+        # and underscores.
+        xi = MENTION
+    elif re.match(r'^[$\'",.!?]+$', xi):
+        # Matches against arbitrary lengths of punctuation.
+        # Prioritized before HASHTAG to catch punctuation-only words.
+        # Colon left out to prevent accidentally matching against emoticons.
+        xi = PUNCT
+    elif re.match(r"^#[^#]+$", xi):
+        # Any non-punct word begining with '#' in a tweet is a hashtag.
+        xi = HASHTAG
+    elif re.match(r"^http[s]?://.+", xi) or re.match(
+        r"^[a-zA-Z0-9_\.]+@[a-zA-Z0-9_\.]+", xi
+    ):
+        # Match URLs and Emails
+        xi = URL
+    elif xi.isdigit() or re.match(r"^[0-9]+[:.-x][0-9]+", xi):
+        # Matches numbers and times (ex. 2010, 9:30)
+        xi = NUMERIC
+
+    return xi
 
 
 def construct_vocab_from_dataset(
@@ -22,6 +64,7 @@ def construct_vocab_from_dataset(
     label_namespace=DEFAULT_LABEL_NAMESPACE,
     start_token=None,
     end_token=None,
+    lowercase_tokens=False,
 ):
     """
     Constructs an AllenNLP vocabulary from the given dataset with two separate
@@ -44,6 +87,9 @@ def construct_vocab_from_dataset(
     token_counts = Counter()
     label_set = set()
     for tokens, labels in instances:
+        if lowercase_tokens:
+            tokens = map(lambda token: token.lower(), tokens)
+
         token_counts.update(tokens)
         label_set.update(labels)
 
@@ -69,7 +115,10 @@ def construct_vocab_from_dataset(
         counter=counter,
         min_count=min_count,
         max_vocab_size={token_namespace: max_vocab_size},
-        tokens_to_add={label_namespace: label_set},
+        tokens_to_add={
+            token_namespace: SPECIALIZED_UNKNOWNS,
+            label_namespace: label_set,
+        },
     )
 
     return vocab
