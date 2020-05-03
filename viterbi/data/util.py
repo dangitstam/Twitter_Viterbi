@@ -6,18 +6,20 @@ from allennlp.data.vocabulary import Vocabulary
 # Default namespaces for tokens and labels.
 DEFAULT_TOKEN_NAMESPACE = "tokens"
 DEFAULT_LABEL_NAMESPACE = "labels"
-DEFAULT_START_TOKEN = "@@START@@"
-DEFAULT_END_TOKEN = "@@END@@"
+
+# TODO: These and env-defined defaults are not aligned.
+DEFAULT_START_TOKEN = "<s>"
+DEFAULT_END_TOKEN = "</s>"
 
 
 def construct_vocab_from_dataset(
     train_file_path,
-    labels_file_path,
     reader,
+    label_set_path=None,
     min_count=None,
     max_vocab_size=None,
-    token_namespace="tokens",
-    label_namespace="labels",
+    token_namespace=DEFAULT_TOKEN_NAMESPACE,
+    label_namespace=DEFAULT_LABEL_NAMESPACE,
     start_token=None,
     end_token=None,
 ):
@@ -25,7 +27,7 @@ def construct_vocab_from_dataset(
     Constructs an AllenNLP vocabulary from the given dataset with two separate
     namespaces: tokens and labels.
 
-    Paramaters
+    Parameters
     ----------
     file_path : The file path of the dataset.
     reader : A first class function that can parse the dataset in `file_path`
@@ -40,29 +42,36 @@ def construct_vocab_from_dataset(
     instances = reader(train_file_path)
 
     token_counts = Counter()
-    for tokens, _ in instances:
+    label_set = set()
+    for tokens, labels in instances:
         token_counts.update(tokens)
+        label_set.update(labels)
 
-    labels_file_text = open(labels_file_path, "r").read()
-    labels = [l for l in re.split("\n+", labels_file_text) if l]
+    label_set = list(label_set)
+
+    # TODO: For some reason, changing the label set from a list to a set
+    # results in non-deterministic behavior in validation accuracy.
+    #
+    # There is no randomness involved, yet changing labels from a list to
+    # a set results in validation hovering between 0.65 and 0.67 on the
+    # twitter dataset.
+    if label_set_path:
+        labels_file_text = open(label_set_path, "r").read()
+        label_set = set([l for l in re.split("\n+", labels_file_text) if l])
 
     counter = {token_namespace: token_counts}
+
+    # TODO: When the start and end tokens are added last, there is a bug.
+    label_set.update([start_token, end_token])
 
     # TODO: min_count should be a dictionary.
     vocab = Vocabulary(
         counter=counter,
         min_count=min_count,
-        max_vocab_size=max_vocab_size,
-        non_padded_namespaces=[label_namespace],
+        max_vocab_size={token_namespace: max_vocab_size},
+        tokens_to_add={
+            label_namespace: label_set
+        }
     )
-
-    for label in labels:
-        vocab.add_token_to_namespace(label, label_namespace)
-
-    if start_token:
-        vocab.add_token_to_namespace(start_token, label_namespace)
-
-    if end_token:
-        vocab.add_token_to_namespace(end_token, label_namespace)
 
     return vocab

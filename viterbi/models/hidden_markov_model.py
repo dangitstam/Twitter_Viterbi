@@ -1,4 +1,11 @@
+import itertools
+
 import numpy as np
+from nltk.lm import MLE
+from nltk.lm.preprocessing import padded_everygram_pipeline
+from tqdm import tqdm
+
+from viterbi.data.util import DEFAULT_START_TOKEN, DEFAULT_END_TOKEN
 from viterbi.models.ngram_model import NGramModel
 
 
@@ -9,8 +16,9 @@ class HiddenMarkovModel:
         order=3,
         token_namespace="tokens",
         label_namespace="labels",
-        start_token="@@START@@",
-        end_token="@@END@@",
+        start_token=DEFAULT_START_TOKEN,
+        end_token=DEFAULT_END_TOKEN,
+        language_model=MLE
     ):
         self.vocab = vocab
         self.order = order
@@ -18,6 +26,7 @@ class HiddenMarkovModel:
         self.label_namespace = label_namespace
         self.start_token = start_token
         self.end_token = end_token
+        self.language_model = language_model
 
         # Infer start and end token IDs.
         self.start_token_id = vocab.get_token_index(start_token, label_namespace)
@@ -43,6 +52,10 @@ class HiddenMarkovModel:
         # An ngram model to help construct the transition matrix over labels.
         self._label_ngram_model = NGramModel(self.order)
 
+        # TODO: This will eventually replace the current ngram model.
+        # TODO: Unit tests pass! Make this toggleable!
+        self._lm_ngram_model = self.language_model(self.order)
+
         # A flag to check if the model has been trained.
         self._is_trained = False
 
@@ -63,21 +76,38 @@ class HiddenMarkovModel:
         if self._is_trained:
             self._init_parameters()
 
+        train_text = []
         for instance in dataset:
-            tokens = instance["token_ids"]
-            labels = instance["label_ids"]
+            token_ids = instance["token_ids"]
+            label_ids = instance["label_ids"]
 
             # Update emissions matrix and label counts to contain the raw counts of each
-            # token-label and labeloccurrence. Later, each value is divided by the label occurrence.
-            for token, label in zip(tokens, labels):
+            # token-label and label occurrence. Later, each value is divided by the label occurrence.
+            for token, label in zip(token_ids, label_ids):
+
+                # TODO: Smoothing needs to exist here.
+                # E.g. ensure that the vocab has a fixed size so that
+                # self.emission_matrix["@@UNKNOWN@@"][label] is non-zero.
+
+                # Also need a function that does the UNK'ing stuff...
                 self.emission_matrix[token][label] += 1
 
             # Update the ngram model. Each series of labels is prepended with
-            # (order - 1) start tokens and appeneded with one end token.
-            labels = tuple(
-                [self.start_token_id] * (self.order - 1) + labels + [self.end_token_id]
+            # (order - 1) start tokens and appended with one end token.
+            labels_ids_with_start_end = tuple(
+                [self.start_token_id] * (self.order - 1) + label_ids + [self.end_token_id]
             )
-            self._label_ngram_model.update(labels)
+            self._label_ngram_model.update(labels_ids_with_start_end)
+
+            labels_with_start_end = [self.vocab.get_token_from_index(label, namespace=self.label_namespace)
+                                     for label in labels_ids_with_start_end]
+
+            train_text.append(labels_with_start_end)
+
+        # TODO: `padded_everygram_pipeline` uses its own start and end tokens, figure out what to do about it
+        train, nltk_vocab = padded_everygram_pipeline(self.order, train_text)
+
+        self._lm_ngram_model.fit(train, nltk_vocab)
 
         self._construct_emission_matrix()
         self._construct_transition_matrix()
@@ -101,13 +131,13 @@ class HiddenMarkovModel:
                 Q[W][U][V] = q(v | w, u)
             where q(v | w,  u) = c(w,  u, v) / c(w, u)
         """
-        all_observed_ngrams = set(
-            self._label_ngram_model.get_ngram_frequencies().keys()
-        )
-        for ngram in all_observed_ngrams:
-            self.transition_matrix[
-                ngram
-            ] = self._label_ngram_model.maximum_likelihood_estimate(ngram)
+        all_token_ids = list(range(0, self.vocab.get_vocab_size(namespace=self.label_namespace)))
+        all_ngrams = itertools.product(*([all_token_ids] * self.order))
+        for ngram in tqdm(all_ngrams):
+            ngram_tokens = tuple(self.vocab.get_token_from_index(index, self.label_namespace) for index in ngram)
+            word = ngram_tokens[-1]
+            context = ngram_tokens[:-1]
+            self.transition_matrix[ngram] = self._lm_ngram_model.score(word, context)
 
     def log_likelihood(self, input_tokens, labels):
         """
