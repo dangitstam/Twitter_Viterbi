@@ -69,9 +69,7 @@ def construct_vocab_from_dataset(
         counter=counter,
         min_count=min_count,
         max_vocab_size={token_namespace: max_vocab_size},
-        tokens_to_add={
-            label_namespace: label_set
-        }
+        tokens_to_add={label_namespace: label_set},
     )
 
     return vocab

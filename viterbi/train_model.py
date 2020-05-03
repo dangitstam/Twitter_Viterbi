@@ -94,7 +94,7 @@ def main():
         token_namespace=token_namespace,
         label_namespace=label_namespace,
         start_token=start_token,
-        end_token=end_token
+        end_token=end_token,
     )
     hmm.train(instances)
 
