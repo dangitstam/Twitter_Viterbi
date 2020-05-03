@@ -30,7 +30,7 @@ def twitter_unk(token: str) -> str:
     token : The token to match against.
     """
 
-    if re.match(r"^@.*", token):
+    if re.match(r"^@[a-zA-Z0-9_]+", token):
         # Twitter handles are restricted to alphanumerics
         # and underscores.
         token = MENTION
