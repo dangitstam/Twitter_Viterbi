@@ -2,3 +2,5 @@ allennlp
 black
 flake8
 numpy
+nltk
+tqdm

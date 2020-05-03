@@ -143,7 +143,7 @@ def viterbi(
 
     if len(input_tokens) < (order - 1):
         # Special case: for input sequences of length less than the order minus 1.
-        output_indices = output_indices[-len(input_tokens) :]
+        output_indices = output_indices[-len(input_tokens):]
     else:
         for k in range(num_tokens - (order - 1), 0, -1):
             backpointer_index = [k + (order - 1)] + output_indices[: order - 1]
