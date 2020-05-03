@@ -68,6 +68,8 @@ def viterbi(
     # prefixed with (n - 1) start tokens begin with probability 1 to prevent any paths not prefixed
     # with start tokens from being an optimal path. Note: log(1) = 0.
     paths.fill(float("-inf"))
+
+    # TODO: Paths should begin with (n - 1) start tokens.
     init_path_index = [0] + [start_token_id] * (order - 1)
     paths[tuple(init_path_index)] = 0
 
@@ -227,7 +229,8 @@ def trigram_viterbi(
         output_indices = output_indices[-len(input_tokens) :]
     else:
         for k in range(num_tokens - 2, 0, -1):
-            yk = backpointers[k + 2][output_indices[0]][output_indices[1]]
+            backpointer_index = [k + (order - 1)] + output_indices[: order - 1]
+            yk = backpointers[tuple(backpointer_index)]
             output_indices.insert(0, yk)
 
     # Collect the log likelihood of the path chosen by viterbi.

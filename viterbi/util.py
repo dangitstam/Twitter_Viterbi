@@ -29,8 +29,8 @@ def construct_model_from_environment(train_path, label_set_path, environment):
     # Construct a vocabulary for both the tokens and label space from the dataset.
     vocab = construct_vocab_from_dataset(
         train_path,
-        label_set_path,
         dataset_parser,
+        label_set_path=label_set_path,
         token_namespace=token_namespace,
         label_namespace=label_namespace,
         max_vocab_size=max_vocab_size,

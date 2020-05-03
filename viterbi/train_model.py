@@ -8,11 +8,12 @@ To unit test viterbi
 
 import argparse
 
+import numpy as np
+
 from viterbi.data.dataset_reader import DatasetReader
 from viterbi.data.util import construct_vocab_from_dataset
-from viterbi.models.hidden_markov_model import HiddenMarkovModel
-
 from viterbi.environments import ENVIRONMENTS
+from viterbi.models.hidden_markov_model import HiddenMarkovModel
 
 
 def main():
@@ -70,8 +71,8 @@ def main():
     # Construct a vocabulary for both the tokens and label space from the dataset.
     vocab = construct_vocab_from_dataset(
         train_path,
-        label_set_path,
         dataset_parser,
+        label_set_path=label_set_path,
         token_namespace=token_namespace,
         label_namespace=label_namespace,
         max_vocab_size=max_vocab_size,
@@ -92,6 +93,8 @@ def main():
         order=order,
         token_namespace=token_namespace,
         label_namespace=label_namespace,
+        start_token=start_token,
+        end_token=end_token
     )
     hmm.train(instances)
 
@@ -104,6 +107,12 @@ def main():
     dev_instances = dataset_reader.read(dev_path)
     correctly_tagged_words = 0
     total_words = 0
+    start_token_id = vocab.get_token_index(start_token, label_namespace)
+    end_token_id = vocab.get_token_index(end_token, label_namespace)
+    max_acc = None
+    max_acc_example = None
+    min_acc = None
+    min_acc_example = None
     for instance in dev_instances:
         input_tokens = instance["token_ids"]
 
@@ -111,10 +120,11 @@ def main():
             input_tokens,
             hmm.emission_matrix,
             hmm.transition_matrix,
-            vocab.get_token_index(start_token, label_namespace),
-            vocab.get_token_index(end_token, label_namespace),
+            start_token_id,
+            end_token_id,
         )
 
+        # TODO: Implement smoothing.
         prediction_labels = list(
             map(
                 lambda x: vocab.get_token_from_index(x, label_namespace),
@@ -132,10 +142,20 @@ def main():
         total_words += len(labels)
 
         log_likelihood = hmm.log_likelihood(instance["token_ids"], output["label_ids"])
-        import numpy as np
 
         assert np.isclose(log_likelihood, output["log_likelihood"])
 
+        acc = sum(correctly_labeled) / len(labels)
+        if min_acc is None or acc < min_acc:
+            min_acc = acc
+            min_acc_example = (labels, prediction_labels)
+        elif max_acc is None or acc > max_acc:
+            max_acc = acc
+            max_acc_example = (labels, prediction_labels)
+
+    # TODO: Proper UNK'ing for Twitter.
+    print(max_acc, max_acc_example)
+    print(min_acc, min_acc_example)
     print(correctly_tagged_words / total_words)
 
 

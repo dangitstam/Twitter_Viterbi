@@ -26,13 +26,13 @@ LABELS = ["label1", "label2", "label3", "label4", "label5"]
 
 def construct_test_vocab_and_dataset():
     train_path = os.path.join(FIXTURES_ROOT, "hmm_test_dataset.txt")
-    labels_file_path = os.path.join(FIXTURES_ROOT, "hmm_test_labels.txt")
+    label_set_path = os.path.join(FIXTURES_ROOT, "hmm_test_labels.txt")
 
     # Construct a vocabulary for both the tokens and label space from the dataset.
     vocab = construct_vocab_from_dataset(
         train_path,
-        labels_file_path,
         read_ark_tweet_conll,
+        label_set_path=label_set_path,
         label_namespace=DEFAULT_LABEL_NAMESPACE,
         token_namespace=DEFAULT_TOKEN_NAMESPACE,
         # The HMM prepends and appends start and end tokens before training. To do this, they first
@@ -73,10 +73,12 @@ def verify_emission_matrix(vocab, instances, hmm):
                 else:
                     assert hmm.emission_matrix[token_id][label_id] == 1
             else:
+                # This covers the remaining portion of labels to test against the contrived
+                # token token5: it appears with label5 and label6 an equal number of times.
                 if label_id != label5_id and label_id != label6_id:
-                    # This covers the remaining portion of labels to test against the contrived
-                    # tokens token1 and token2.
                     assert hmm.emission_matrix[token_id][label_id] == 0
+                else:
+                    assert hmm.emission_matrix[token_id][label_id] == 0.5
 
 
 def test_bigram_hidden_markov_model():

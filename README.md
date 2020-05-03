@@ -16,7 +16,7 @@ and activate it
 conda activate twitter-viterbi
 ```
 
-Install AllenNLP and NumPy
+Install requirements (AllenNLP, NumPy, and linting tools)
 ```
 pip install -r requirements.txt
 ```

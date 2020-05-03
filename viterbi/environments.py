@@ -39,11 +39,12 @@ ark_tweet_conll_trigram_optimized = {
     "end_token": DEFAULT_END_TOKEN,
     "viterbi_decoder": viterbi,
     "order": 3,
-    "max_vocab_size": 5100,
+    "max_vocab_size": 5000,
     "min_count": None,
 }
 
 ENVIRONMENTS = {
     "ark_tweet_conll_trigram": ark_tweet_conll_trigram,
     "ark_tweet_conll_trigram_optimized": ark_tweet_conll_trigram_optimized,
+    "ark_tweet_conll_bigram_optimized": ark_tweet_conll_bigram_optimized,
 }
