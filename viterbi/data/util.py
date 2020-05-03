@@ -16,7 +16,8 @@ MENTION = "@@MENTION@@"
 NUMERIC = "@@NUMERIC@@"
 URL = "@@URL@@"
 PUNCT = "@@PUNCT@@"
-SPECIALIZED_UNKNOWNS = {HASHTAG, MENTION, NUMERIC, URL, PUNCT}
+EMAIL = "@@EMAIL@@"
+SPECIALIZED_UNKNOWNS = {HASHTAG, MENTION, NUMERIC, URL, PUNCT, EMAIL}
 
 
 def twitter_unk(token: str) -> str:
@@ -40,13 +41,16 @@ def twitter_unk(token: str) -> str:
         # Colon left out to prevent accidentally matching against emoticons.
         token = PUNCT
     elif re.match(r"^#[^#]+$", token):
-        # Any non-punct word begining with '#' in a tweet is a hashtag.
+        # Any non-punctuation word beginning with '#' in a tweet is a hashtag.
         token = HASHTAG
     elif re.match(r"^http[s]?://.+", token) or re.match(
-        r"^[a-zA-Z0-9_\.]+@[a-zA-Z0-9_\.]+", token
+        r"^[a-zA-Z0-9_.]+@[a-zA-Z0-9_.]+", token
     ):
-        # Match URLs and Emails
+        # Match URLs
         token = URL
+    elif re.match(r"^[a-zA-Z0-9_.]+@[a-zA-Z0-9_.]+", token):
+        # Match Emails
+        token = EMAIL
     elif token.isdigit() or re.match(r"^[0-9]+[:.-x][0-9]+", token):
         # Matches numbers and times (ex. 2010, 9:30)
         token = NUMERIC
