@@ -1,11 +1,18 @@
 import itertools
 
 import numpy as np
-from nltk.lm import MLE
+from nltk.lm import MLE, Laplace, KneserNeyInterpolated, WittenBellInterpolated
 from nltk.util import everygrams
 from tqdm import tqdm
 
 from viterbi.data.util import DEFAULT_START_TOKEN, DEFAULT_END_TOKEN
+
+NGRAM_MODEL_TYPES = {
+    "MLE": MLE,
+    "Laplace": Laplace,
+    "KneserNeyInterpolated": KneserNeyInterpolated,
+    "WittenBellInterpolated": WittenBellInterpolated,
+}
 
 
 class HiddenMarkovModel:
@@ -17,41 +24,48 @@ class HiddenMarkovModel:
         label_namespace="labels",
         start_token=DEFAULT_START_TOKEN,
         end_token=DEFAULT_END_TOKEN,
-        language_model=MLE
+        language_model="MLE",
     ):
         self.vocab = vocab
         self.order = order
         self.token_namespace = token_namespace
         self.label_namespace = label_namespace
+        self.token_namespace_size = self.vocab.get_vocab_size(self.token_namespace)
+        self.label_namespace_size = self.vocab.get_vocab_size(self.label_namespace)
         self.start_token = start_token
         self.end_token = end_token
-        self.language_model = language_model
+
+        if language_model not in NGRAM_MODEL_TYPES:
+            raise ValueError(
+                "language model '{}' not supported.".format(language_model)
+            )
+
+        self.language_model = NGRAM_MODEL_TYPES[language_model]
 
         # Infer start and end token IDs.
         self.start_token_id = vocab.get_token_index(start_token, label_namespace)
         self.end_token_id = vocab.get_token_index(end_token, label_namespace)
 
-        # Init. transition and emission matrices.
-        self._init_parameters()
+        # A token_namespace x label_namespace containing emission probabilities.
+        self.emission_matrix = np.zeros(
+            (self.token_namespace_size, self.label_namespace_size)
+        )
+
+        # A label_namespace ^ order sized matrix containing transition probabilities.
+        # For a trigram HMM, transition_matrix[w][u][v] = P(v | w, u).
+        self.transition_matrix = np.zeros((self.label_namespace_size,) * self.order)
+
+        self._lm_ngram_model = self.language_model(self.order)
 
         # A flag to check if the model has been trained.
         self._is_trained = False
 
     def _init_parameters(self):
-        token_namespace_size = self.vocab.get_vocab_size(self.token_namespace)
-        label_namespace_size = self.vocab.get_vocab_size(self.label_namespace)
-
-        # A token_namespace x label_namespace containing emission probabilities.
-        self.emission_matrix = np.zeros((token_namespace_size, label_namespace_size))
-
-        # A label_namespace ^ order sized matrix containing transition probabilities.
-        # For a trigram HMM, transition_matrix[w][u][v] = P(v | w, u).
-        self.transition_matrix = np.zeros((label_namespace_size,) * self.order)
-
-        # TODO: Unit tests pass! Make this toggleable!
+        self.emission_matrix = np.zeros(
+            (self._token_namespace_size, self._label_namespace_size)
+        )
+        self.transition_matrix = np.zeros((self._label_namespace_size,) * self.order)
         self._lm_ngram_model = self.language_model(self.order)
-
-        # A flag to check if the model has been trained.
         self._is_trained = False
 
     def train(self, dataset):
@@ -88,7 +102,8 @@ class HiddenMarkovModel:
         # Train the ngram model with padded label sequences from the training instances.
         self._lm_ngram_model.fit(
             self._padded_everygram_pipeline_viterbi(ngram_training_text),
-            self.get_label_set())
+            self.get_label_set(),
+        )
 
         self._construct_emission_matrix()
         self._construct_transition_matrix()
@@ -112,10 +127,15 @@ class HiddenMarkovModel:
                 Q[W][U][V] = q(v | w, u)
             where q(v | w,  u) = c(w,  u, v) / c(w, u)
         """
-        all_token_ids = list(range(0, self.vocab.get_vocab_size(namespace=self.label_namespace)))
+        all_token_ids = list(
+            range(0, self.vocab.get_vocab_size(namespace=self.label_namespace))
+        )
         all_ngrams = itertools.product(*([all_token_ids] * self.order))
         for ngram in tqdm(all_ngrams):
-            ngram_tokens = tuple(self.vocab.get_token_from_index(index, self.label_namespace) for index in ngram)
+            ngram_tokens = tuple(
+                self.vocab.get_token_from_index(index, self.label_namespace)
+                for index in ngram
+            )
             word = ngram_tokens[-1]
             context = ngram_tokens[:-1]
             self.transition_matrix[ngram] = self._lm_ngram_model.score(word, context)
@@ -172,7 +192,9 @@ class HiddenMarkovModel:
         return transition_log_likelihood + emission_log_likelihood
 
     def get_label_set(self):
-        return set(self.vocab.get_token_to_index_vocabulary(self.label_namespace).keys())
+        return set(
+            self.vocab.get_token_to_index_vocabulary(self.label_namespace).keys()
+        )
 
     def _pad_label_sequence(self, labels: list):
         return [self.start_token] * (self.order - 1) + labels + [self.end_token]
@@ -195,4 +217,7 @@ class HiddenMarkovModel:
         Iterable[Iterable[str]]
         :return: iterator over text as ngrams, iterator over text as vocabulary data
         """
-        return (everygrams(self._pad_label_sequence(sent), max_len=self.order) for sent in text)
+        return (
+            everygrams(self._pad_label_sequence(sent), max_len=self.order)
+            for sent in text
+        )
