@@ -1,5 +1,6 @@
 import re
 from collections import Counter
+import string
 
 from allennlp.data.vocabulary import Vocabulary
 
@@ -35,7 +36,7 @@ def twitter_unk(token: str) -> str:
         # Twitter handles are restricted to alphanumerics
         # and underscores.
         token = MENTION
-    elif re.match(r'^[$\'",.!?]+$', token):
+    elif token in string.punctuation:
         # Matches against arbitrary lengths of punctuation.
         # Prioritized before HASHTAG to catch punctuation-only words.
         # Colon left out to prevent accidentally matching against emoticons.
@@ -43,14 +44,12 @@ def twitter_unk(token: str) -> str:
     elif re.match(r"^#[^#]+$", token):
         # Any non-punctuation word beginning with '#' in a tweet is a hashtag.
         token = HASHTAG
-    elif re.match(r"^http[s]?://.+", token) or re.match(
-        r"^[a-zA-Z0-9_.]+@[a-zA-Z0-9_.]+", token
-    ):
+
+    # TODO: The training data doesn't have any emails.
+    # Ezmission probabilities e(@@EMAIL@@ | s) for all states 's' is 'nan'...
+    elif re.match(r"^http[s]?://.+", token) or re.match(r"^[^@]+@[^@]+", token):
         # Match URLs
         token = URL
-    elif re.match(r"^[a-zA-Z0-9_.]+@[a-zA-Z0-9_.]+", token):
-        # Match Emails
-        token = EMAIL
     elif token.isdigit() or re.match(r"^[0-9]+[:.-x][0-9]+", token):
         # Matches numbers and times (ex. 2010, 9:30)
         token = NUMERIC

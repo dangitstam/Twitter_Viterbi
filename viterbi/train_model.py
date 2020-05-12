@@ -9,6 +9,7 @@ To unit test viterbi
 import argparse
 import logging
 import pprint
+import string
 
 from viterbi.data.dataset_reader import DatasetReader
 from viterbi.data.util import construct_vocab_from_dataset
@@ -20,7 +21,7 @@ from viterbi.models.model import Model
 def main():
     logging.basicConfig(
         filename="training.log",
-        filemode="r",
+        filemode="a",
         level=logging.DEBUG,
         format="%(asctime)s %(message)s",
     )
@@ -91,7 +92,7 @@ def main():
     # Construct a dataset reader and collect training instances.
     def token_preprocessing_fn(tokens):
         if lowercase_tokens:
-            tokens = map(tokens.lower(), tokens)
+            tokens = [token.lower() for token in tokens]
         if special_unknown_token_fn:
             tokens = map(twitter_unk, tokens)
         return list(tokens)
