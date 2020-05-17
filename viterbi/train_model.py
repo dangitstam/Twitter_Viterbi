@@ -7,29 +7,36 @@ To unit test viterbi
 """
 
 import argparse
+import logging
+import os
+import pickle
+import pprint
+import shutil
+import sys
 
-import numpy as np
+from functools import partial
 
 from viterbi.data.dataset_reader import DatasetReader
 from viterbi.data.util import construct_vocab_from_dataset
-from viterbi.environments import ENVIRONMENTS
-from viterbi.models.hidden_markov_model import HiddenMarkovModel
 from viterbi.data.util import twitter_unk
+from viterbi.environments import ENVIRONMENTS
+from viterbi.models.model import Model
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    logging.basicConfig(
+        filename="training.log",
+        filemode="a",
+        level=logging.DEBUG,
+        format="%(asctime)s %(message)s",
     )
+    parser = argparse.ArgumentParser()
     parser.add_argument(
         "--train-path", type=str, required=True, help="Path to the training set."
     )
     parser.add_argument(
         "--dev-path", type=str, required=True, help="Path to the dev set."
     )
-
-    # TODO: Make this optional, infer the state-space from the training data.
-    # When a new label is seen during training, throw an exception (this should be true already anyway).
     parser.add_argument(
         "--label-set-path",
         type=str,
@@ -87,93 +94,74 @@ def main():
         lowercase_tokens=lowercase_tokens,
     )
 
-    # Construct a dataset reader and collect training instances.
-    def token_preprocessing_fn(tokens):
-        if lowercase_tokens:
-            tokens = map(tokens.lower(), tokens)
-        if special_unknown_token_fn:
-            tokens = map(twitter_unk, tokens)
-        return tokens
+    # Create a token preprocessing function from the given environment.
+    token_preprocessing_fn = partial(
+        build_token_preprocessing_fn, lowercase_tokens, special_unknown_token_fn
+    )
 
+    logging.info("reading dataset")
     dataset_reader = DatasetReader(
         vocab, dataset_parser, token_preprocessing_fn=token_preprocessing_fn
     )
     instances = dataset_reader.read(train_path)
 
-    # Train a hidden markov model to learn transition and emission probabilities.
-    hmm = HiddenMarkovModel(
+    logging.info("training model")
+    model = Model(
+        order,
+        viterbi_decoder,
         vocab,
-        order=order,
-        token_namespace=token_namespace,
-        label_namespace=label_namespace,
-        start_token=start_token,
-        end_token=end_token,
+        start_token,
+        end_token,
+        token_namespace,
+        label_namespace,
     )
-    hmm.train(instances)
+    model.train_model(instances)
 
-    # TODO: In this script,
-    # TODO: Produce a dict containing a trained model and its vocab, and then output that dict as a tarball to the serialization dir.
-    # TODO: Does it make sense to make a "model" that takes an HMM, vocab, and viterbi decoder to define a clean forward function?
-    output = {"hmm": hmm, "viterbi_decoder": viterbi_decoder, "vocab": vocab}
-
-    # Evaluate model performance on the dev set.
+    logging.info("model validation")
     dev_instances = dataset_reader.read(dev_path)
-    correctly_tagged_words = 0
-    total_words = 0
-    start_token_id = vocab.get_token_index(start_token, label_namespace)
-    end_token_id = vocab.get_token_index(end_token, label_namespace)
-    max_acc = None
-    max_acc_example = None
-    min_acc = None
-    min_acc_example = None
-    for instance in dev_instances:
-        input_tokens = instance["token_ids"]
+    dev_results = model.evaluate(dev_instances)
+    pprint.pprint(dev_results, width=4)
 
-        output = viterbi_decoder(
-            input_tokens,
-            hmm.emission_matrix,
-            hmm.transition_matrix,
-            start_token_id,
-            end_token_id,
-        )
-
-        # TODO: Implement smoothing.
-        prediction_labels = list(
-            map(
-                lambda x: vocab.get_token_from_index(x, label_namespace),
-                output["label_ids"],
+    if args.serialization_dir:
+        if os.path.isdir(args.serialization_dir):
+            overwrite = input(
+                "Model directory {} already exists. Overwrite? (y/n): ".format(
+                    args.serialization_dir
+                )
             )
-        )
+            if overwrite.lower() != "y":
+                sys.exit()
 
-        labels = instance["labels"]
+        shutil.rmtree(args.serialization_dir)
+        os.mkdir(args.serialization_dir)
+        output = {
+            "model": model,
+            "dataset_reader": dataset_reader,
+            "environment": environment,
+        }
+        pickle.dump(output, open(os.path.join(args.serialization_dir, "model.p"), "wb"))
 
-        correctly_labeled = [
-            int(prediction == label)
-            for prediction, label in zip(prediction_labels, labels)
-        ]
-        correctly_tagged_words += sum(correctly_labeled)
-        total_words += len(labels)
 
-        log_likelihood = hmm.log_likelihood(instance["token_ids"], output["label_ids"])
+def build_token_preprocessing_fn(
+    lowercase_tokens: bool, special_unknown_token_fn, tokens: list
+):
+    """
+    Processes a given list of tokens.
 
-        assert np.isclose(log_likelihood, output["log_likelihood"])
-
-        acc = sum(correctly_labeled) / len(labels)
-        if min_acc is None or acc < min_acc:
-            min_acc = acc
-            min_acc_example = (labels, prediction_labels)
-        elif max_acc is None or acc > max_acc:
-            max_acc = acc
-            max_acc_example = (labels, prediction_labels)
-
-        print(
-            "EXPECTED: {} \nACTUAL:   {}".format(instance["labels"], prediction_labels)
-        )
-
-    # TODO: Proper UNK'ing for Twitter.
-    print(max_acc, max_acc_example)
-    print(min_acc, min_acc_example)
-    print(correctly_tagged_words / total_words)
+    Parameters
+    ----------
+    lowercase_tokens : bool
+        If true, lowercases each token in `tokens`.
+    special_unknown_token_fn : func
+        If not null, this function is applied to each token after lowercasing.
+    tokens : List[Str]
+        The input tokens.
+    """
+    if lowercase_tokens:
+        tokens = [token.lower() for token in tokens]
+    if special_unknown_token_fn:
+        tokens = map(twitter_unk, tokens)
+    return list(tokens)
 
 
 if __name__ == "__main__":

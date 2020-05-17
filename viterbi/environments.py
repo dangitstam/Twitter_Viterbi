@@ -34,7 +34,7 @@ ark_tweet_conll_bigram_optimized = {
     "order": 2,
     "max_vocab_size": 250,
     "min_count": None,
-    "lowercase_tokens": False,
+    "lowercase_tokens": True,
     "special_unknown_token_fn": twitter_unk,
 }
 
@@ -49,7 +49,7 @@ ark_tweet_conll_trigram_optimized = {
     "order": 3,
     "max_vocab_size": 225,
     "min_count": None,
-    "lowercase_tokens": True,
+    "lowercase_tokens": False,
     "special_unknown_token_fn": twitter_unk,
 }
 
