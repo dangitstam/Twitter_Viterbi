@@ -4,7 +4,6 @@ tests = {
     # Twitter mentions
     "@e_one": MENTION,  # Problem during development.
     "@dangitstam": MENTION,
-
     # URLs and Emails.
     "email@example.com": URL,
     "firstname.lastname@example.com": URL,
@@ -20,7 +19,7 @@ tests = {
     "email@example.museum": URL,
     "email@example.co.jp": URL,
     "firstname-lastname@example.com": URL,
-
+    # Hashtags
     "#PutACanOnIt": HASHTAG,
     "#ShareaCoke": HASHTAG,
     "#TweetFromTheSeat": HASHTAG,
@@ -28,12 +27,20 @@ tests = {
     "#WantAnR8": HASHTAG,
     "#NationalFriedChickenDay": HASHTAG,
     "#CollegeIn5Words": HASHTAG,
-
+    # Punctuation
     ",": PUNCT,
     ".": PUNCT,
     ":": PUNCT,
     "!": PUNCT,
-    "?": PUNCT
+    "?": PUNCT,
+    # Numbers
+    "0": NUMERIC,
+    "123": NUMERIC,
+    "9:30": NUMERIC,
+    "12:45": NUMERIC,
+    "34.5": NUMERIC,
+    "0.05": NUMERIC,
+    "16%": NUMERIC,
 }
 
 

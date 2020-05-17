@@ -71,7 +71,11 @@ class Model:
         return output
 
     def evaluate(self, instances):
-        # Evaluate model performance on the dev set.
+        """
+        Given an iterator over a dataset whose entries are of the form
+        { "tokens": list[str], "labels": list[str] }
+        computes the validation accuracy of the model.
+        """
         correctly_tagged_words, total_words = 0, 0
         max_acc, max_acc_example, min_acc, min_acc_example = None, None, None, None
         for instance in instances:

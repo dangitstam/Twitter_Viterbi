@@ -50,7 +50,7 @@ def twitter_unk(token: str) -> str:
     elif re.match(r"^http[s]?://.+", token) or re.match(r"^[^@]+@[^@]+", token):
         # Match URLs
         token = URL
-    elif token.isdigit() or re.match(r"^[0-9]+[:.-x][0-9]+", token):
+    elif token.isdigit() or re.match(r"^[0-9]+([:.-x][0-9]+)?%?", token):
         # Matches numbers and times (ex. 2010, 9:30)
         token = NUMERIC
 

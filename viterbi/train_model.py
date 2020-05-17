@@ -8,8 +8,13 @@ To unit test viterbi
 
 import argparse
 import logging
+import os
+import pickle
 import pprint
-import string
+import shutil
+import sys
+
+from functools import partial
 
 from viterbi.data.dataset_reader import DatasetReader
 from viterbi.data.util import construct_vocab_from_dataset
@@ -89,13 +94,10 @@ def main():
         lowercase_tokens=lowercase_tokens,
     )
 
-    # Construct a dataset reader and collect training instances.
-    def token_preprocessing_fn(tokens):
-        if lowercase_tokens:
-            tokens = [token.lower() for token in tokens]
-        if special_unknown_token_fn:
-            tokens = map(twitter_unk, tokens)
-        return list(tokens)
+    # Create a token preprocessing function from the given environment.
+    token_preprocessing_fn = partial(
+        build_token_preprocessing_fn, lowercase_tokens, special_unknown_token_fn
+    )
 
     logging.info("reading dataset")
     dataset_reader = DatasetReader(
@@ -119,6 +121,47 @@ def main():
     dev_instances = dataset_reader.read(dev_path)
     dev_results = model.evaluate(dev_instances)
     pprint.pprint(dev_results, width=4)
+
+    if args.serialization_dir:
+        if os.path.isdir(args.serialization_dir):
+            overwrite = input(
+                "Model directory {} already exists. Overwrite? (y/n): ".format(
+                    args.serialization_dir
+                )
+            )
+            if overwrite.lower() != "y":
+                sys.exit()
+
+        shutil.rmtree(args.serialization_dir)
+        os.mkdir(args.serialization_dir)
+        output = {
+            "model": model,
+            "dataset_reader": dataset_reader,
+            "environment": environment,
+        }
+        pickle.dump(output, open(os.path.join(args.serialization_dir, "model.p"), "wb"))
+
+
+def build_token_preprocessing_fn(
+    lowercase_tokens: bool, special_unknown_token_fn, tokens: list
+):
+    """
+    Processes a given list of tokens.
+
+    Parameters
+    ----------
+    lowercase_tokens : bool
+        If true, lowercases each token in `tokens`.
+    special_unknown_token_fn : func
+        If not null, this function is applied to each token after lowercasing.
+    tokens : List[Str]
+        The input tokens.
+    """
+    if lowercase_tokens:
+        tokens = [token.lower() for token in tokens]
+    if special_unknown_token_fn:
+        tokens = map(twitter_unk, tokens)
+    return list(tokens)
 
 
 if __name__ == "__main__":
