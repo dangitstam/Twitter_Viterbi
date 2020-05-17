@@ -46,7 +46,7 @@ def twitter_unk(token: str) -> str:
         token = HASHTAG
 
     # TODO: The training data doesn't have any emails.
-    # Ezmission probabilities e(@@EMAIL@@ | s) for all states 's' is 'nan'...
+    # Emission probabilities e(@@EMAIL@@ | s) for all states 's' is 'nan'...
     elif re.match(r"^http[s]?://.+", token) or re.match(r"^[^@]+@[^@]+", token):
         # Match URLs
         token = URL
