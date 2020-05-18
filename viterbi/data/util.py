@@ -57,6 +57,28 @@ def twitter_unk(token: str) -> str:
     return token
 
 
+def build_token_preprocessing_fn(
+    lowercase_tokens: bool, special_unknown_token_fn, tokens: list
+):
+    """
+    Processes a given list of tokens.
+
+    Parameters
+    ----------
+    lowercase_tokens : bool
+        If true, lowercases each token in `tokens`.
+    special_unknown_token_fn : func
+        If not null, this function is applied to each token after lowercasing.
+    tokens : List[Str]
+        The input tokens.
+    """
+    if lowercase_tokens:
+        tokens = [token.lower() for token in tokens]
+    if special_unknown_token_fn:
+        tokens = map(twitter_unk, tokens)
+    return list(tokens)
+
+
 def construct_vocab_from_dataset(
     train_file_path: str,
     reader,
