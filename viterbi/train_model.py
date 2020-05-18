@@ -1,11 +1,3 @@
-"""
-TODO: Arg parser, demo mode, accept input produce output as files, unit tests.
-
-To unit test viterbi
-* Assert the expected value is the highest in both sequence probability and emission before testing.
-
-"""
-
 import argparse
 import logging
 import os
@@ -13,12 +5,10 @@ import pickle
 import pprint
 import shutil
 import sys
-
 from functools import partial
 
 from viterbi.data.dataset_reader import DatasetReader
-from viterbi.data.util import construct_vocab_from_dataset
-from viterbi.data.util import twitter_unk
+from viterbi.data.util import construct_vocab_from_dataset, build_token_preprocessing_fn
 from viterbi.environments import ENVIRONMENTS
 from viterbi.models.model import Model
 
@@ -140,28 +130,6 @@ def main():
             "environment": environment,
         }
         pickle.dump(output, open(os.path.join(args.serialization_dir, "model.p"), "wb"))
-
-
-def build_token_preprocessing_fn(
-    lowercase_tokens: bool, special_unknown_token_fn, tokens: list
-):
-    """
-    Processes a given list of tokens.
-
-    Parameters
-    ----------
-    lowercase_tokens : bool
-        If true, lowercases each token in `tokens`.
-    special_unknown_token_fn : func
-        If not null, this function is applied to each token after lowercasing.
-    tokens : List[Str]
-        The input tokens.
-    """
-    if lowercase_tokens:
-        tokens = [token.lower() for token in tokens]
-    if special_unknown_token_fn:
-        tokens = map(twitter_unk, tokens)
-    return list(tokens)
 
 
 if __name__ == "__main__":
